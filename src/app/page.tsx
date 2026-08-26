@@ -64,11 +64,11 @@ export default async function Home() {
               </svg>
               Practice
             </Link>
-            <Link href="/lessons" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
+            <Link href="/grammar-correction" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Grammar
+              Grammar Check
             </Link>
             <Link href="/lessons" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -215,9 +215,9 @@ export default async function Home() {
                   <p className="text-zinc-500 text-sm mt-1">Paste your writing and get real-time recommendations, synonyms, and natural corrections.</p>
                 </div>
               </div>
-              <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-xl text-sm transition mt-6 dark:bg-purple-600 dark:hover:bg-purple-700">
+              <Link href="/grammar-correction" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-xl text-sm transition mt-6 dark:bg-purple-600 dark:hover:bg-purple-700 flex items-center justify-center">
                 Improve Now
-              </button>
+              </Link>
             </div>
 
             {/* Word of the Day */}
