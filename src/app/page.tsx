@@ -40,7 +40,7 @@ export default async function Home() {
               </svg>
               My Progress
             </Link>
-            <Link href="/lessons" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
+            <Link href="/ai-tutor" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
@@ -185,9 +185,9 @@ export default async function Home() {
                   <p className="text-zinc-500 text-sm mt-1">Practice speaking & conversation with dynamic AI feedback on grammar, tone, and vocabulary.</p>
                 </div>
               </div>
-              <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-xl text-sm transition mt-6 dark:bg-indigo-600 dark:hover:bg-indigo-700">
+              <Link href="/ai-tutor" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-xl text-sm transition mt-6 dark:bg-indigo-600 dark:hover:bg-indigo-700 flex items-center justify-center">
                 Start Chatting
-              </button>
+              </Link>
             </div>
 
             {/* Sentence Improver */}
