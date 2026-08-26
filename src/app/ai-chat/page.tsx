@@ -10,12 +10,12 @@ interface Message {
   timestamp: Date;
 }
 
-export default function AITutorPage() {
+export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       sender: "ai",
-      text: "Hello! I am your AI English Tutor. 👋 How can I help you improve your English today? You can choose a topic below or type your own sentence to check for grammar corrections.",
+      text: "Hello! I am your AI Chat Assistant. 🤖 I can help you draft emails, translate text, summarize articles, or answer questions. Choose a topic below or type anything to begin!",
       timestamp: new Date(),
     },
   ]);
@@ -29,31 +29,31 @@ export default function AITutorPage() {
   }, [messages, isTyping]);
 
   const quickPrompts = [
-    { label: "Practice Job Interview 💼", text: "I want to practice a job interview." },
-    { label: "Explain Present Perfect 📚", text: "Can you explain the Present Perfect tense?" },
-    { label: "Check my grammar ✍️", text: "She have a dog and she go to school yesterday." },
+    { label: "Translate to English 🌐", text: "I want to translate a sentence to English." },
+    { label: "Draft an Email ✉️", text: "Can you help me write a professional email?" },
+    { label: "Summarize Text 📝", text: "Please summarize a paragraph for me." },
   ];
 
   const getAIResponse = (userText: string): string => {
     const text = userText.toLowerCase();
-    
-    if (text.includes("interview")) {
-      return "Excellent! Let's practice a job interview. 💼 I will act as the interviewer. To start, tell me: what role are you applying for, and why are you interested in it?";
+
+    if (text.includes("translate")) {
+      return "🌐 **Translation Service:**\nI can translate text for you. Please type: *'Translate: [your text here]'*, and tell me which language you want it in. I'll translate it immediately!";
     }
-    
-    if (text.includes("present perfect")) {
-      return "The **Present Perfect** tense connects the past to the present (e.g., 'I have lived here for 2 years'). It is formed by: **Subject + have/has + Past Participle**. \n\nTry writing a sentence in the Present Perfect about something you did today, and I will check it!";
+
+    if (text.includes("email") || text.includes("write a")) {
+      return "✉️ **Email Drafting Assistant:**\nI can write a professional email draft for you. Please tell me:\n1. Who is the email for? (e.g., manager, client)\n2. What is the subject or purpose of the email? (e.g., requesting leave, follow-up)";
     }
-    
-    if (text.includes("she have") || text.includes("she go to")) {
-      return "💡 **Grammar Corrections:**\n1. Use **'has'** with 'she' (third-person singular). \n   * *Incorrect:* 'She have'\n   * *Correct:* 'She has'\n2. Since you said 'yesterday' (past time marker), use Simple Past **'went'** instead of 'go'.\n   * *Incorrect:* 'she go... yesterday'\n   * *Correct:* 'she went... yesterday'\n\n**Improved Sentence:** *'She has a dog and she went to school yesterday.'*";
+
+    if (text.includes("summarize")) {
+      return "📝 **Summarization Helper:**\nPlease paste the text you want me to summarize. I will extract the key points and present them in a clear bullet-point format.";
     }
 
     if (text.includes("hello") || text.includes("hi ") || text.includes("hey")) {
-      return "Hello! Great to connect with you. Tell me, what aspect of English would you like to practice today? (Grammar, Vocabulary, or general conversation?)";
+      return "Hello! I'm here. How can I assist you with your writing, translation, or research tasks today?";
     }
 
-    return "That's a good sentence! To help you practice, try using it in a short paragraph, or ask me to check its grammar. What topic should we study next?";
+    return "That's interesting! I can help you expand on this idea, translate it, or check its structure. What would you like to do next?";
   };
 
   const handleSend = (textToSend: string) => {
@@ -112,13 +112,13 @@ export default function AITutorPage() {
               </svg>
               Lessons / Skills
             </Link>
-             <Link href="/ai-tutor" className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-indigo-900 text-white font-medium transition">
+            <Link href="/ai-tutor" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
               AI Tutor
             </Link>
-            <Link href="/ai-chat" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
+            <Link href="/ai-chat" className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-indigo-900 text-white font-medium transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
@@ -133,13 +133,13 @@ export default function AITutorPage() {
           </nav>
         </div>
 
-        {/* DB Connection Status footer */}
+        {/* Status footer */}
         <div className="p-6 border-t border-indigo-900/60 bg-indigo-950/50">
           <div className="flex items-center gap-3">
             <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
             <div className="text-xs text-indigo-200">
-              <p className="font-semibold text-white">AI Tutor Ready</p>
-              <p className="opacity-75">Instant conversation check</p>
+              <p className="font-semibold text-white">AI Chat Ready</p>
+              <p className="opacity-75">General tasks assistant</p>
             </div>
           </div>
         </div>
@@ -152,11 +152,11 @@ export default function AITutorPage() {
         <header className="h-16 border-b border-zinc-200/80 bg-white px-8 flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800/80 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-100 rounded-full dark:bg-indigo-950 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">
-              🤖
+              💬
             </div>
             <div>
-              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">AI Tutor</p>
-              <p className="text-xs text-green-500 font-medium">Online • Active feedback enabled</p>
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">AI Chat Assistant</p>
+              <p className="text-xs text-green-500 font-medium">Online • General translation & helper</p>
             </div>
           </div>
         </header>
@@ -235,7 +235,7 @@ export default function AITutorPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question or write a sentence to practice..."
+              placeholder="Ask a question, translate languages, draft emails..."
               className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-50"
             />
             <button
