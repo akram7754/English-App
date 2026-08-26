@@ -19,3 +19,14 @@ model Post {
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
 }
+
+model Lesson {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  category    String
+  difficulty  String
+  content     String
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+}
