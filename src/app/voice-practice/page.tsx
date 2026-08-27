@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { logoutAction } from "../login/actions";
 
 interface PracticePhrase {
   text: string;
@@ -9,6 +10,25 @@ interface PracticePhrase {
 }
 
 export default function VoicePracticePage() {
+  const [userName, setUserName] = useState("Sarah Jenkins");
+  const [userInitials, setUserInitials] = useState("SJ");
+
+  useEffect(() => {
+    const match = document.cookie.match(new RegExp('(^| )user=([^;]+)'));
+    if (!match) {
+      window.location.href = "/login";
+    } else {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(match[2]));
+        const name = decoded.name || "Sarah Jenkins";
+        setUserName(name);
+        setUserInitials(name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "SJ");
+      } catch (e) {
+        // Fallback
+      }
+    }
+  }, []);
+
   const [difficulty, setDifficulty] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -224,6 +244,14 @@ export default function VoicePracticePage() {
               </svg>
               My Profile
             </Link>
+            <form action={logoutAction} className="w-full">
+              <button type="submit" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white text-left transition">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Logout / Exit
+              </button>
+            </form>
           </nav>
         </div>
 

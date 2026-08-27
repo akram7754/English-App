@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { logoutAction } from "../login/actions";
 
 interface Lesson {
   id: number;
@@ -12,7 +13,7 @@ interface Lesson {
   content: string;
 }
 
-export default function LessonsClient({ initialLessons }: { initialLessons: Lesson[] }) {
+export default function LessonsClient({ initialLessons, userName = "Sarah Jenkins" }: { initialLessons: Lesson[]; userName?: string }) {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(initialLessons[0] || null);
 
@@ -98,6 +99,14 @@ export default function LessonsClient({ initialLessons }: { initialLessons: Less
               </svg>
               My Profile
             </Link>
+            <form action={logoutAction} className="w-full">
+              <button type="submit" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white text-left transition">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Logout / Exit
+              </button>
+            </form>
           </nav>
         </div>
 

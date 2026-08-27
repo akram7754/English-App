@@ -1,11 +1,19 @@
-import React from "react";
 import Link from "next/link";
 import { db } from "../../prisma/db";
 import { createLesson } from "./actions";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { logoutAction } from "../login/actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  const cookieStore = await cookies();
+  const userCookie = cookieStore.get("user")?.value;
+  if (!userCookie) {
+    redirect("/login");
+  }
+
   let users: any[] = [];
   let lessons: any[] = [];
   let posts: any[] = [];
@@ -97,6 +105,14 @@ export default async function AdminPage() {
               </svg>
               My Profile
             </Link>
+            <form action={logoutAction} className="w-full">
+              <button type="submit" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white text-left transition">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Logout / Exit
+              </button>
+            </form>
           </nav>
         </div>
 

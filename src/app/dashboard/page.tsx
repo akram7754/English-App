@@ -1,25 +1,36 @@
 import Link from "next/link";
 import { db } from "../../prisma/db";
 import { createPost } from "./actions";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { logoutAction } from "../login/actions";
 
 export const dynamic = "force-dynamic";
 
-// Helper to ensure a demo user exists in PostgreSQL database
-async function getOrCreateDemoUser() {
-  const email = "sarah@example.com";
+export default async function UserDashboardPage() {
+  const cookieStore = await cookies();
+  const userCookie = cookieStore.get("user")?.value;
+  if (!userCookie) {
+    redirect("/login");
+  }
+
+  const sessionUser = JSON.parse(userCookie);
+  const email = sessionUser.email;
+  const name = sessionUser.name;
+
+  // Fetch or create user in PostgreSQL matching cookie session
   let user = await db.orm.public.User.where({ email }).first();
+
   if (!user) {
     user = await db.orm.public.User.create({
       email,
-      name: "Sarah Jenkins",
-      username: "sarah_j",
+      name,
+      username: email.split("@")[0],
     });
   }
-  return user;
-}
 
-export default async function UserDashboardPage() {
-  const user = await getOrCreateDemoUser();
+  const userName = user.name || "Sarah Jenkins";
+  const userInitials = userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "SJ";
   
   // Fetch posts from PostgreSQL database and include the author
   let posts: any[] = [];
@@ -114,12 +125,14 @@ export default async function UserDashboardPage() {
               </svg>
               Admin Panel
             </Link>
-            <Link href="/login" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-              </svg>
-              Logout / Exit
-            </Link>
+            <form action={logoutAction} className="w-full">
+              <button type="submit" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white text-left transition">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Logout / Exit
+              </button>
+            </form>
           </nav>
         </div>
 
@@ -141,7 +154,7 @@ export default async function UserDashboardPage() {
         <div className="bg-indigo-900 text-white p-8 md:p-12 relative shrink-0">
           <div className="flex flex-col md:flex-row md:items-center gap-6">
             <div className="w-20 h-20 bg-indigo-200 rounded-full border-4 border-white/20 flex items-center justify-center font-bold text-indigo-950 text-2xl shadow-lg">
-              SJ
+              {userInitials}
             </div>
             <div className="space-y-1">
               <h1 className="text-3xl font-extrabold tracking-tight">{user.name}</h1>

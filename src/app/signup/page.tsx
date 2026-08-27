@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signupAction } from "../login/actions";
 
 export default function SignupPage() {
   const [username, setUsername] = useState("");
@@ -9,14 +11,23 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg("");
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      setErrorMsg("Passwords do not match!");
       return;
     }
-    alert(`Account created for: ${username}`);
+    const res = await signupAction(username, email);
+    if (res.success) {
+      router.push("/");
+      router.refresh();
+    } else {
+      setErrorMsg(res.error || "Signup failed");
+    }
   };
 
   return (
@@ -35,6 +46,11 @@ export default function SignupPage() {
           <p className="text-sm text-zinc-500 mt-2 dark:text-zinc-400">
             Start learning English with AI today.
           </p>
+          {errorMsg && (
+            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-xs font-semibold w-full">
+              {errorMsg}
+            </div>
+          )}
         </div>
 
         {/* Signup Form */}

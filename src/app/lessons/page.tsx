@@ -1,9 +1,20 @@
 import { db } from "../../prisma/db";
 import LessonsClient from "./LessonsClient";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function LessonsPage() {
+  const cookieStore = await cookies();
+  const userCookie = cookieStore.get("user")?.value;
+  if (!userCookie) {
+    redirect("/login");
+  }
+
+  const sessionUser = JSON.parse(userCookie);
+  const userName = sessionUser.name || "Sarah Jenkins";
+
   let lessons: any[] = [];
 
   try {
@@ -12,5 +23,5 @@ export default async function LessonsPage() {
     console.error("Failed to load lessons from database:", error);
   }
 
-  return <LessonsClient initialLessons={lessons} />;
+  return <LessonsClient initialLessons={lessons} userName={userName} />;
 }

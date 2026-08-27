@@ -2,15 +2,26 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { loginAction } from "./actions";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Signing in as: ${email}`);
+    setErrorMsg("");
+    const res = await loginAction(email);
+    if (res.success) {
+      router.push("/");
+      router.refresh();
+    } else {
+      setErrorMsg(res.error || "Login failed");
+    }
   };
 
   return (
@@ -29,6 +40,11 @@ export default function LoginPage() {
           <p className="text-sm text-zinc-500 mt-2 dark:text-zinc-400">
             Learn English effortlessly with AI. Sign in to your account.
           </p>
+          {errorMsg && (
+            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-xs font-semibold w-full">
+              {errorMsg}
+            </div>
+          )}
         </div>
 
         {/* Login Form */}
