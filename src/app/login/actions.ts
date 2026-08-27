@@ -44,7 +44,7 @@ export async function loginAction(email: string, password?: string) {
     cookieStore.set("user", sessionToken, {
       path: "/",
       maxAge: 86400, // 1 day
-      httpOnly: true,
+      httpOnly: false,
       secure: false,
       sameSite: "lax",
     });
@@ -90,7 +90,7 @@ export async function signupAction(username: string, email: string, password?: s
     cookieStore.set("user", sessionToken, {
       path: "/",
       maxAge: 86400, // 1 day
-      httpOnly: true,
+      httpOnly: false,
       secure: false,
       sameSite: "lax",
     });
