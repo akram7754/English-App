@@ -9,6 +9,28 @@ import { verifySession } from "../../lib/auth";
 
 export const dynamic = "force-dynamic";
 
+interface UserData {
+  id: number;
+  email: string;
+  name?: string | null;
+  username?: string | null;
+}
+
+interface LessonData {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  content: string;
+}
+
+interface PostData {
+  id: number;
+  title: string;
+  content?: string | null;
+}
+
 export default async function AdminPage() {
   const cookieStore = await cookies();
   const userCookie = cookieStore.get("user")?.value;
@@ -17,15 +39,15 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  let users: any[] = [];
-  let lessons: any[] = [];
-  let posts: any[] = [];
+  let users: UserData[] = [];
+  let lessons: LessonData[] = [];
+  let posts: PostData[] = [];
   let connectionSuccess = true;
 
   try {
-    users = await db.orm.public.User.all();
-    lessons = await db.orm.public.Lesson.all();
-    posts = await db.orm.public.Post.all();
+    users = await db.orm.public.User.all() as UserData[];
+    lessons = await db.orm.public.Lesson.all() as LessonData[];
+    posts = await db.orm.public.Post.all() as PostData[];
   } catch (error) {
     console.error("Failed to query administration metrics:", error);
     connectionSuccess = false;
@@ -35,7 +57,7 @@ export default async function AdminPage() {
     <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans dark:bg-zinc-950 dark:text-zinc-50 overflow-hidden">
       
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-indigo-950 text-indigo-100 flex flex-col justify-between hidden md:flex shrink-0">
+      <aside className="w-64 bg-indigo-950 text-indigo-100 hidden md:flex flex-col justify-between shrink-0">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-8">
             <Link href="/" className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white text-lg tracking-wider">
