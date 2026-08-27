@@ -21,7 +21,7 @@ export default function SignupPage() {
       setErrorMsg("Passwords do not match!");
       return;
     }
-    const res = await signupAction(username, email);
+    const res = await signupAction(username, email, password);
     if (res.success) {
       router.push("/");
       router.refresh();

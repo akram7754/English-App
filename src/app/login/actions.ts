@@ -3,31 +3,50 @@
 import { db } from "../../prisma/db";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { hashPassword, verifyPassword, signSession } from "../../lib/auth";
 
-export async function loginAction(email: string) {
+export async function loginAction(email: string, password?: string) {
   if (!email) {
     return { success: false, error: "Email is required" };
   }
+  if (!password) {
+    return { success: false, error: "Password is required" };
+  }
 
   try {
-    let user = await db.orm.public.User.where({ email }).first();
+    const user = await db.orm.public.User.where({ email }).first();
 
     if (!user) {
-      // Automatically register new emails to make login frictionless
-      user = await db.orm.public.User.create({
-        email,
-        username: email.split("@")[0],
-        name: email.split("@")[0],
+      // Generic error to prevent email enumeration
+      return { success: false, error: "Invalid email or password" };
+    }
+
+    if (!user.passwordHash) {
+      // Legacy user: secure their account on first login
+      const hash = await hashPassword(password);
+      await db.orm.public.User.where({ id: user.id }).update({
+        passwordHash: hash,
       });
+    } else {
+      // Verify password hash
+      const isValid = await verifyPassword(password, user.passwordHash);
+      if (!isValid) {
+        return { success: false, error: "Invalid email or password" };
+      }
     }
 
     const cookieStore = await cookies();
-    cookieStore.set("user", JSON.stringify({
+    const sessionToken = signSession({
       email: user.email,
       name: user.name || user.username || "Sarah Jenkins",
-    }), {
+    });
+
+    cookieStore.set("user", sessionToken, {
       path: "/",
       maxAge: 86400, // 1 day
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
     });
 
     return { success: true };
@@ -37,9 +56,13 @@ export async function loginAction(email: string) {
   }
 }
 
-export async function signupAction(username: string, email: string) {
-  if (!username || !email) {
-    return { success: false, error: "Username and email are required" };
+export async function signupAction(username: string, email: string, password?: string) {
+  if (!username || !email || !password) {
+    return { success: false, error: "Username, email, and password are required" };
+  }
+
+  if (password.length < 6) {
+    return { success: false, error: "Password must be at least 6 characters long" };
   }
 
   try {
@@ -49,19 +72,27 @@ export async function signupAction(username: string, email: string) {
       return { success: false, error: "Email already registered" };
     }
 
+    const hash = await hashPassword(password);
+
     const user = await db.orm.public.User.create({
       email,
       username,
       name: username,
+      passwordHash: hash,
     });
 
     const cookieStore = await cookies();
-    cookieStore.set("user", JSON.stringify({
+    const sessionToken = signSession({
       email: user.email,
       name: user.name || user.username,
-    }), {
+    });
+
+    cookieStore.set("user", sessionToken, {
       path: "/",
       maxAge: 86400, // 1 day
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
     });
 
     return { success: true };

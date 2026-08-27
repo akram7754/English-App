@@ -3,16 +3,18 @@ import LessonsClient from "./LessonsClient";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { verifySession } from "../../lib/auth";
+
 export const dynamic = "force-dynamic";
 
 export default async function LessonsPage() {
   const cookieStore = await cookies();
   const userCookie = cookieStore.get("user")?.value;
-  if (!userCookie) {
+  const sessionUser = userCookie ? verifySession(userCookie) : null;
+  if (!sessionUser) {
     redirect("/login");
   }
 
-  const sessionUser = JSON.parse(userCookie);
   const userName = sessionUser.name || "Sarah Jenkins";
 
   let lessons: any[] = [];

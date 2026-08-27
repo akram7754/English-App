@@ -21,12 +21,15 @@ export default function AITutorPage() {
       window.location.href = "/login";
     } else {
       try {
-        const decoded = JSON.parse(decodeURIComponent(match[2]));
+        const token = match[2];
+        const payloadBase64 = token.split(".")[0];
+        const decodedJSON = atob(payloadBase64);
+        const decoded = JSON.parse(decodedJSON);
         const name = decoded.name || "Sarah Jenkins";
         setUserName(name);
         setUserInitials(name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "SJ");
       } catch (e) {
-        // Fallback
+        window.location.href = "/login";
       }
     }
   }, []);

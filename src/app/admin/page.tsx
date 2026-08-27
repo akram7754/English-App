@@ -5,12 +5,15 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logoutAction } from "../login/actions";
 
+import { verifySession } from "../../lib/auth";
+
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const cookieStore = await cookies();
   const userCookie = cookieStore.get("user")?.value;
-  if (!userCookie) {
+  const sessionUser = userCookie ? verifySession(userCookie) : null;
+  if (!sessionUser) {
     redirect("/login");
   }
 

@@ -4,16 +4,18 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logoutAction } from "./login/actions";
 
+import { verifySession } from "../lib/auth";
+
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const cookieStore = await cookies();
   const userCookie = cookieStore.get("user")?.value;
-  if (!userCookie) {
+  const user = userCookie ? verifySession(userCookie) : null;
+  if (!user) {
     redirect("/login");
   }
 
-  const user = JSON.parse(userCookie);
   const userName = user.name || "Sarah Jenkins";
   const userInitials = userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "SJ";
 
