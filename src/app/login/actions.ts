@@ -45,7 +45,7 @@ export async function loginAction(email: string, password?: string) {
       path: "/",
       maxAge: 86400, // 1 day
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
     });
 
@@ -91,7 +91,7 @@ export async function signupAction(username: string, email: string, password?: s
       path: "/",
       maxAge: 86400, // 1 day
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
     });
 
