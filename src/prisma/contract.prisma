@@ -7,6 +7,7 @@ model User {
   name      String?
   passwordHash String?
   posts     Post[]
+  attempts  PracticeAttempt[]
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
 }
@@ -30,4 +31,15 @@ model Lesson {
   content     String
   createdAt   TimestamptzString @default(now())
   updatedAt   temporal.updatedAtString()
+}
+
+model PracticeAttempt {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  phrase     String
+  score      Int
+  difficulty String
+  status     String
+  createdAt  TimestamptzString @default(now())
+  user       User     @relation(fields: [userId], references: [id])
 }

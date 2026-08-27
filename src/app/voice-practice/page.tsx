@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
+import { saveAttemptAction } from "../ai-tutor/actions";
 
 interface PracticePhrase {
   text: string;
@@ -150,7 +151,7 @@ export default function VoicePracticePage() {
     return Math.round((matches / Math.max(w1.length, w2.length)) * 100);
   };
 
-  const analyzeSpeech = (spoken: string, target: string) => {
+  const analyzeSpeech = async (spoken: string, target: string) => {
     const similarityScore = calculateSimilarity(spoken, target);
     setScore(similarityScore);
 
@@ -160,6 +161,12 @@ export default function VoicePracticePage() {
       setFeedback("👍 Good job! Your pronunciation is clear, but check a few words that might have been skipped or misheard.");
     } else {
       setFeedback("🗣️ Keep practicing! Try speaking slowly, enunciating each word clearly, and ensure there's no background noise.");
+    }
+
+    try {
+      await saveAttemptAction(target, similarityScore, targetPhrase.difficulty);
+    } catch (e) {
+      console.error("Failed to persist attempt:", e);
     }
   };
 

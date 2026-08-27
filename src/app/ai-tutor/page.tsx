@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
+import { askTutorAction } from "./actions";
 
 interface Message {
   id: string;
@@ -57,29 +58,7 @@ export default function AITutorPage() {
     { label: "Check my grammar ✍️", text: "She have a dog and she go to school yesterday." },
   ];
 
-  const getAIResponse = (userText: string): string => {
-    const text = userText.toLowerCase();
-    
-    if (text.includes("interview")) {
-      return "Excellent! Let's practice a job interview. 💼 I will act as the interviewer. To start, tell me: what role are you applying for, and why are you interested in it?";
-    }
-    
-    if (text.includes("present perfect")) {
-      return "The **Present Perfect** tense connects the past to the present (e.g., 'I have lived here for 2 years'). It is formed by: **Subject + have/has + Past Participle**. \n\nTry writing a sentence in the Present Perfect about something you did today, and I will check it!";
-    }
-    
-    if (text.includes("she have") || text.includes("she go to")) {
-      return "💡 **Grammar Corrections:**\n1. Use **'has'** with 'she' (third-person singular). \n   * *Incorrect:* 'She have'\n   * *Correct:* 'She has'\n2. Since you said 'yesterday' (past time marker), use Simple Past **'went'** instead of 'go'.\n   * *Incorrect:* 'she go... yesterday'\n   * *Correct:* 'she went... yesterday'\n\n**Improved Sentence:** *'She has a dog and she went to school yesterday.'*";
-    }
-
-    if (text.includes("hello") || text.includes("hi ") || text.includes("hey")) {
-      return "Hello! Great to connect with you. Tell me, what aspect of English would you like to practice today? (Grammar, Vocabulary, or general conversation?)";
-    }
-
-    return "That's a good sentence! To help you practice, try using it in a short paragraph, or ask me to check its grammar. What topic should we study next?";
-  };
-
-  const handleSend = (textToSend: string) => {
+  const handleSend = async (textToSend: string) => {
     if (!textToSend.trim()) return;
 
     const userMsg: Message = {
@@ -89,13 +68,17 @@ export default function AITutorPage() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
     setIsTyping(true);
 
-    // Simulate typing delay
-    setTimeout(() => {
-      const aiReplyText = getAIResponse(textToSend);
+    try {
+      const aiReplyText = await askTutorAction(
+        newMessages.map((m) => ({ sender: m.sender, text: m.text })),
+        textToSend
+      );
+
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: "ai",
@@ -103,8 +86,18 @@ export default function AITutorPage() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMsg]);
+    } catch (e) {
+      console.error(e);
+      const errMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: "ai",
+        text: "Sorry, I am having trouble connecting to my tutor brain right now. Please try again.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1200);
+    }
   };
 
   return (

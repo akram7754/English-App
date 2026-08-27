@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
+import { getAttemptsAction } from "../ai-tutor/actions";
 
 interface Attempt {
   id: number;
@@ -16,6 +17,15 @@ interface Attempt {
 export default function SpeakingScorePage() {
   const [userName, setUserName] = useState("Sarah Jenkins");
   const [userInitials, setUserInitials] = useState("SJ");
+  const [attemptsList, setAttemptsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    getAttemptsAction().then((data) => {
+      if (data && data.length > 0) {
+        setAttemptsList(data);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const match = document.cookie.match(new RegExp('(^| )user=([^;]+)'));
@@ -77,6 +87,26 @@ export default function SpeakingScorePage() {
       status: "Excellent",
     },
   ];
+
+  const displayedAttempts = attemptsList.length > 0 ? attemptsList.map((item, idx) => ({
+    id: item.id || idx,
+    date: new Date(item.createdAt).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }),
+    phrase: item.phrase,
+    difficulty: item.difficulty,
+    score: item.score,
+    status: item.status
+  })) : attempts;
+
+  const totalReadingsCount = attemptsList.length > 0 ? attemptsList.length : 24;
+  const avgScore = attemptsList.length > 0 
+    ? Math.round(attemptsList.reduce((acc, cur) => acc + cur.score, 0) / attemptsList.length) 
+    : 88;
 
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans dark:bg-zinc-950 dark:text-zinc-50 overflow-hidden">
@@ -201,15 +231,15 @@ export default function SpeakingScorePage() {
           <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
             <div>
               <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Average Score</p>
-              <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">88.4%</p>
+              <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">{avgScore}%</p>
               <p className="text-xs text-green-500 font-medium mt-1">Proficient speaker level</p>
             </div>
             <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
               <svg className="w-16 h-16 transform -rotate-90">
                 <circle cx="32" cy="32" r="26" className="stroke-zinc-100 dark:stroke-zinc-800" strokeWidth="5" fill="transparent" />
-                <circle cx="32" cy="32" r="26" className="stroke-indigo-500" strokeWidth="5" fill="transparent" strokeDasharray={163} strokeDashoffset={163 - (163 * 88) / 100} />
+                <circle cx="32" cy="32" r="26" className="stroke-indigo-500" strokeWidth="5" fill="transparent" strokeDasharray={163} strokeDashoffset={163 - (163 * avgScore) / 100} />
               </svg>
-              <span className="absolute text-xs font-bold text-indigo-500">88%</span>
+              <span className="absolute text-xs font-bold text-indigo-500">{avgScore}%</span>
             </div>
           </div>
 
@@ -217,7 +247,7 @@ export default function SpeakingScorePage() {
           <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
             <div>
               <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Total Readings</p>
-              <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">24 Phrases</p>
+              <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">{totalReadingsCount} Phrases</p>
               <p className="text-xs text-zinc-400 mt-1">Completed across 3 levels</p>
             </div>
             <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 dark:bg-indigo-950/30">
@@ -324,7 +354,7 @@ export default function SpeakingScorePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-850">
-                {attempts.map((attempt) => (
+                {displayedAttempts.map((attempt) => (
                   <tr key={attempt.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-950/10">
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-zinc-400">{attempt.date}</td>
                     <td className="px-6 py-4 max-w-xs truncate font-semibold text-zinc-700 dark:text-zinc-300">"{attempt.phrase}"</td>

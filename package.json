@@ -12,6 +12,7 @@
     "contract:emit": "prisma contract emit"
   },
   "dependencies": {
+    "@google/genai": "^2.19.0",
     "@prisma/client": "^7.10.0",
     "@prisma/orm-postgres": "^8.0.0-rc.8",
     "bcryptjs": "^3.0.3",

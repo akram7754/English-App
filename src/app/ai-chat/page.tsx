@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
+import { askAssistantAction } from "../ai-tutor/actions";
 
 interface Message {
   id: string;
@@ -57,29 +58,7 @@ export default function AIChatPage() {
     { label: "Summarize Text 📝", text: "Please summarize a paragraph for me." },
   ];
 
-  const getAIResponse = (userText: string): string => {
-    const text = userText.toLowerCase();
-
-    if (text.includes("translate")) {
-      return "🌐 **Translation Service:**\nI can translate text for you. Please type: *'Translate: [your text here]'*, and tell me which language you want it in. I'll translate it immediately!";
-    }
-
-    if (text.includes("email") || text.includes("write a")) {
-      return "✉️ **Email Drafting Assistant:**\nI can write a professional email draft for you. Please tell me:\n1. Who is the email for? (e.g., manager, client)\n2. What is the subject or purpose of the email? (e.g., requesting leave, follow-up)";
-    }
-
-    if (text.includes("summarize")) {
-      return "📝 **Summarization Helper:**\nPlease paste the text you want me to summarize. I will extract the key points and present them in a clear bullet-point format.";
-    }
-
-    if (text.includes("hello") || text.includes("hi ") || text.includes("hey")) {
-      return "Hello! I'm here. How can I assist you with your writing, translation, or research tasks today?";
-    }
-
-    return "That's interesting! I can help you expand on this idea, translate it, or check its structure. What would you like to do next?";
-  };
-
-  const handleSend = (textToSend: string) => {
+  const handleSend = async (textToSend: string) => {
     if (!textToSend.trim()) return;
 
     const userMsg: Message = {
@@ -93,9 +72,15 @@ export default function AIChatPage() {
     setInput("");
     setIsTyping(true);
 
-    // Simulate typing delay
-    setTimeout(() => {
-      const aiReplyText = getAIResponse(textToSend);
+    let promptType = "general";
+    const text = textToSend.toLowerCase();
+    if (text.includes("translate")) promptType = "translate";
+    else if (text.includes("email") || text.includes("write a")) promptType = "email";
+    else if (text.includes("summarize")) promptType = "summarize";
+
+    try {
+      const aiReplyText = await askAssistantAction(textToSend, promptType);
+
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: "ai",
@@ -103,8 +88,18 @@ export default function AIChatPage() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMsg]);
+    } catch (e) {
+      console.error(e);
+      const errMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: "ai",
+        text: "Sorry, I am having trouble connecting to my assistant brain right now. Please try again.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1200);
+    }
   };
 
   return (
