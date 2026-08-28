@@ -28,7 +28,7 @@ export async function askTutorAction(history: { sender: "user" | "ai"; text: str
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents,
     });
 
@@ -76,7 +76,7 @@ export async function askAssistantAction(message: string, promptType: string) {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: [
         { role: "user", parts: [{ text: systemInstruction }] },
         { role: "user", parts: [{ text: message }] }
