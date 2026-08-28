@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
+import { completeLessonAction } from "./actions";
 
 interface Lesson {
   id: number;
@@ -13,15 +14,41 @@ interface Lesson {
   content: string;
 }
 
-export default function LessonsClient({ initialLessons, userName = "Sarah Jenkins" }: { initialLessons: Lesson[]; userName?: string }) {
+interface LessonsClientProps {
+  initialLessons: Lesson[];
+  userName?: string;
+  initialCompletedLessonIds?: number[];
+}
+
+export default function LessonsClient({
+  initialLessons,
+  userName = "Sarah Jenkins",
+  initialCompletedLessonIds = [],
+}: LessonsClientProps) {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(initialLessons[0] || null);
+  const [completedLessonIds, setCompletedLessonIds] = useState<number[]>(initialCompletedLessonIds);
+  const [loading, setLoading] = useState(false);
 
   const categories = ["All", "Grammar", "Vocabulary", "Speaking"];
 
   const filteredLessons = selectedCategory === "All"
     ? initialLessons
     : initialLessons.filter((l) => l.category.toLowerCase() === selectedCategory.toLowerCase());
+
+  const handleComplete = async (lessonId: number) => {
+    if (loading) return;
+    setLoading(true);
+    const res = await completeLessonAction(lessonId);
+    setLoading(false);
+    if (res.success) {
+      setCompletedLessonIds((prev) => [...prev, lessonId]);
+    } else {
+      alert(res.error || "Failed to mark lesson as complete.");
+    }
+  };
+
+  const isCompleted = (lessonId: number) => completedLessonIds.includes(lessonId);
 
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans dark:bg-zinc-950 dark:text-zinc-50 overflow-hidden">
@@ -102,7 +129,7 @@ export default function LessonsClient({ initialLessons, userName = "Sarah Jenkin
             <form action={logoutAction} className="w-full">
               <button type="submit" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white text-left transition">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3 3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
                 Logout / Exit
               </button>
@@ -162,19 +189,29 @@ export default function LessonsClient({ initialLessons, userName = "Sarah Jenkin
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold tracking-wider uppercase bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md dark:bg-indigo-950/40 dark:text-indigo-400">
-                      {lesson.category}
-                    </span>
-                    <span className="text-[10px] font-bold tracking-wider uppercase bg-amber-50 text-amber-600 px-2 py-0.5 rounded-md dark:bg-amber-950/40 dark:text-amber-400">
-                      {lesson.difficulty}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold tracking-wider uppercase bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md dark:bg-indigo-950/40 dark:text-indigo-400">
+                        {lesson.category}
+                      </span>
+                      <span className="text-[10px] font-bold tracking-wider uppercase bg-amber-50 text-amber-600 px-2 py-0.5 rounded-md dark:bg-amber-950/40 dark:text-amber-400">
+                        {lesson.difficulty}
+                      </span>
+                    </div>
+                    {isCompleted(lesson.id) && (
+                      <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center gap-0.5">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Completed
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100">{lesson.title}</h3>
                   <p className="text-zinc-500 text-sm leading-relaxed">{lesson.description}</p>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-semibold pt-4 mt-auto">
-                  <span>Start Learning</span>
+                  <span>{isCompleted(lesson.id) ? "Review Lesson" : "Start Learning"}</span>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -196,6 +233,11 @@ export default function LessonsClient({ initialLessons, userName = "Sarah Jenkin
                   <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-full dark:bg-amber-950/40 dark:text-amber-400">
                     {selectedLesson.difficulty}
                   </span>
+                  {isCompleted(selectedLesson.id) && (
+                    <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full dark:bg-emerald-950/40 dark:text-emerald-400">
+                      Completed
+                    </span>
+                  )}
                 </div>
                 <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">{selectedLesson.title}</h2>
                 <p className="text-zinc-400 text-sm leading-relaxed">{selectedLesson.description}</p>
@@ -219,10 +261,15 @@ export default function LessonsClient({ initialLessons, userName = "Sarah Jenkin
           {selectedLesson && (
             <div className="border-t border-zinc-100 pt-6 mt-8 shrink-0 dark:border-zinc-800">
               <button
-                onClick={() => alert(`Marked "${selectedLesson.title}" as complete!`)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl text-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-md"
+                disabled={isCompleted(selectedLesson.id) || loading}
+                onClick={() => handleComplete(selectedLesson.id)}
+                className={`w-full font-medium py-2.5 rounded-xl text-sm transition focus:outline-none focus:ring-2 shadow-md ${
+                  isCompleted(selectedLesson.id)
+                    ? "bg-zinc-100 text-zinc-400 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500/20"
+                }`}
               >
-                Mark Lesson as Complete
+                {loading ? "Saving Progress..." : isCompleted(selectedLesson.id) ? "Lesson Completed! 🎉" : "Mark Lesson as Complete"}
               </button>
             </div>
           )}

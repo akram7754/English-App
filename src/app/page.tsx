@@ -3,8 +3,9 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logoutAction } from "./login/actions";
-
 import { verifySession } from "../lib/auth";
+import { seedLessonsAndVocabularyAction } from "./lessons/actions";
+import WordOfTheDay from "./WordOfTheDay";
 
 export const dynamic = "force-dynamic";
 
@@ -16,24 +17,107 @@ export default async function Home() {
     redirect("/login");
   }
 
+  // Seed default lessons & vocabulary if empty
+  await seedLessonsAndVocabularyAction();
+
   const userName = user.name || "Sarah Jenkins";
   const userInitials = userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "SJ";
 
   let usersCount = 0;
   let connectionSuccess = false;
+  let completedCount = 0;
+  let totalCount = 0;
+  let learningPercentage = 0;
+  let learnedVocabCount = 0;
+  let streakDays = 0;
+
+  // Word of the day variables
+  let wordOfTheDay = {
+    id: 1,
+    word: "Ubiquitous",
+    definition: "Present, appearing, or found everywhere.",
+    partOfSpeech: "adjective",
+    example: "Cell phones are ubiquitous in modern society."
+  };
+  let wordSaved = false;
 
   try {
     const users = await db.orm.public.User.all();
     usersCount = users.length;
     connectionSuccess = true;
+
+    const dbUser = await db.orm.public.User.where({ email: user.email }).first();
+    if (dbUser) {
+      // 1. Completed lessons count
+      const completions = await db.orm.public.UserLessonProgress.where({ userId: dbUser.id }).all();
+      completedCount = completions.length;
+
+      // 2. Vocabulary learned count
+      const learnedVocab = await db.orm.public.UserVocabularyProgress.where({ userId: dbUser.id }).all();
+      learnedVocabCount = learnedVocab.length;
+
+      // 3. Streak calculation
+      const attempts = await db.orm.public.PracticeAttempt.where({ userId: dbUser.id }).all();
+      const dates = Array.from(new Set(attempts.map((a) => new Date(a.createdAt).toISOString().split("T")[0])));
+      dates.sort((a, b) => b.localeCompare(a)); // Sort descending
+
+      const todayStr = new Date().toISOString().split("T")[0];
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      let checkDate = new Date();
+      if (!dates.includes(todayStr) && dates.includes(yesterdayStr)) {
+        checkDate = yesterday;
+      }
+
+      let current = checkDate;
+      while (true) {
+        const currentStr = current.toISOString().split("T")[0];
+        if (dates.includes(currentStr)) {
+          streakDays++;
+          current.setDate(current.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+    }
+
+    // 4. Total lessons
+    const lessons = await db.orm.public.Lesson.all();
+    totalCount = lessons.length;
+    learningPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+    // 5. Query word of the day from seeded DB
+    const vocabularyList = await db.orm.public.Vocabulary.all();
+    if (vocabularyList.length > 0) {
+      // Rotate word based on day of month to make it dynamic
+      const index = new Date().getDate() % vocabularyList.length;
+      const dbWord = vocabularyList[index];
+      wordOfTheDay = {
+        id: dbWord.id,
+        word: dbWord.word,
+        definition: dbWord.definition,
+        partOfSpeech: dbWord.partOfSpeech || "noun",
+        example: dbWord.example || ""
+      };
+
+      if (dbUser) {
+        const savedRecord = await db.orm.public.UserVocabularyProgress.where({
+          userId: dbUser.id,
+          vocabId: dbWord.id
+        }).first();
+        wordSaved = !!savedRecord;
+      }
+    }
   } catch (error: any) {
-    console.error("Failed to fetch users from database:", error);
+    console.error("Failed to query dashboard metrics:", error);
   }
 
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans dark:bg-zinc-950 dark:text-zinc-50 overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-indigo-950 text-indigo-100 flex flex-col justify-between hidden md:flex">
+      <aside className="w-64 bg-indigo-950 text-indigo-100 flex flex-col justify-between hidden md:flex shrink-0">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white text-lg tracking-wider">
@@ -75,9 +159,9 @@ export default async function Home() {
             </Link>
             <Link href="/lessons" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
-              Practice
+              Lessons / Skills
             </Link>
             <Link href="/grammar-correction" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,12 +175,6 @@ export default async function Home() {
               </svg>
               Speaking Score
             </Link>
-            <Link href="/progress" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-              </svg>
-              Progress Track
-            </Link>
             <Link href="/admin" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -104,16 +182,10 @@ export default async function Home() {
               </svg>
               Admin Panel
             </Link>
-            <Link href="/lessons" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              Vocabulary
-            </Link>
             <form action={logoutAction} className="w-full">
               <button type="submit" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white text-left transition">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3 3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
                 Logout / Exit
               </button>
@@ -175,8 +247,8 @@ export default async function Home() {
             <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
               <div>
                 <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Daily Streak</p>
-                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">28 Days</p>
-                <p className="text-xs text-green-500 font-medium mt-1">Keep it up!</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">{streakDays} Days</p>
+                <p className="text-xs text-green-500 font-medium mt-1">{streakDays > 0 ? "Keep it up!" : "Start practicing to build streak!"}</p>
               </div>
               <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 dark:bg-amber-950/30">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -188,9 +260,9 @@ export default async function Home() {
             {/* Vocabulary */}
             <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
               <div>
-                <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Vocabulary</p>
-                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">1,450</p>
-                <p className="text-xs text-zinc-400 mt-1">12 words added today</p>
+                <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Vocabulary Learned</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">{learnedVocabCount}</p>
+                <p className="text-xs text-zinc-400 mt-1">Seeded in database</p>
               </div>
               <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 dark:bg-indigo-950/30">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -203,16 +275,16 @@ export default async function Home() {
             <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
               <div>
                 <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Lesson Progress</p>
-                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">65%</p>
-                <p className="text-xs text-zinc-400 mt-1">Unit 4: Advanced Tenses</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">{learningPercentage}%</p>
+                <p className="text-xs text-zinc-400 mt-1">{completedCount} of {totalCount} lessons</p>
               </div>
-              <div className="relative w-12 h-12 flex items-center justify-center">
+              <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
                 {/* Simple Circular Progress SVGs */}
                 <svg className="w-12 h-12 transform -rotate-90">
                   <circle cx="24" cy="24" r="18" className="stroke-zinc-100 dark:stroke-zinc-800" strokeWidth="3" fill="transparent" />
-                  <circle cx="24" cy="24" r="18" className="stroke-indigo-500" strokeWidth="3" fill="transparent" strokeDasharray={113} strokeDashoffset={113 - (113 * 65) / 100} />
+                  <circle cx="24" cy="24" r="18" className="stroke-indigo-500" strokeWidth="3" fill="transparent" strokeDasharray={113} strokeDashoffset={113 - (113 * learningPercentage) / 100} />
                 </svg>
-                <span className="absolute text-[10px] font-bold text-indigo-500">65%</span>
+                <span className="absolute text-[10px] font-bold text-indigo-500">{learningPercentage}%</span>
               </div>
             </div>
           </div>
@@ -224,7 +296,7 @@ export default async function Home() {
               <div className="space-y-4">
                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center dark:bg-indigo-950/30 dark:text-indigo-400">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
                 <div>
@@ -256,30 +328,13 @@ export default async function Home() {
             </div>
 
             {/* Word of the Day */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col justify-between dark:bg-zinc-900 dark:border-zinc-800">
-              <div className="space-y-4">
-                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center dark:bg-emerald-950/30 dark:text-emerald-400">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100">Word of the Day</h3>
-                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full dark:bg-emerald-950/30 dark:text-emerald-400">Vocabulary</span>
-                  </div>
-                  <p className="font-bold text-xl text-zinc-800 mt-2 dark:text-zinc-200">Ubiquitous <span className="text-sm font-normal text-zinc-400">(adj.)</span></p>
-                  <p className="text-zinc-500 text-sm mt-1">Present, appearing, or found everywhere.</p>
-                  <p className="text-xs text-zinc-400 italic mt-2">"Cell phones are ubiquitous in modern society."</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 mt-6 text-sm font-medium border-t border-zinc-100 pt-3 dark:border-zinc-800/80 shrink-0">
-                <button className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Pronounce</button>
-                <span className="text-zinc-200 dark:text-zinc-700">|</span>
-                <button className="text-zinc-500 hover:text-zinc-600 dark:text-zinc-400">Save to list</button>
-              </div>
-            </div>
+            <WordOfTheDay
+              word={wordOfTheDay.word}
+              definition={wordOfTheDay.definition}
+              partOfSpeech={wordOfTheDay.partOfSpeech}
+              example={wordOfTheDay.example}
+              initialSaved={wordSaved}
+            />
           </div>
 
           {/* Learning Activity Chart Section */}

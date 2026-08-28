@@ -1,45 +1,94 @@
 // use prisma-next
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String?
-  name      String?
-  passwordHash String?
-  posts     Post[]
-  attempts  PracticeAttempt[]
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+  id             Int                      @id @default(autoincrement())
+  email          String                   @unique
+  username       String?
+  name           String?
+  passwordHash   String?
+  posts          Post[]
+  attempts       PracticeAttempt[]
+  lessonProgress UserLessonProgress[]
+  vocabProgress  UserVocabularyProgress[]
+  createdAt      TimestamptzString        @default(now())
+  updatedAt      temporal.updatedAtString()
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
+  id        Int               @id @default(autoincrement())
   title     String
   content   String?
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User              @relation(fields: [authorId], references: [id])
   authorId  Int
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
 }
 
+model Course {
+  id          Int               @id @default(autoincrement())
+  title       String
+  description String?
+  lessons     Lesson[]
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+}
+
 model Lesson {
-  id          Int      @id @default(autoincrement())
+  id          Int                  @id @default(autoincrement())
   title       String
   description String
   category    String
   difficulty  String
   content     String
-  createdAt   TimestamptzString @default(now())
+  course      Course?              @relation(fields: [courseId], references: [id])
+  courseId    Int?
+  completions UserLessonProgress[]
+  createdAt   TimestamptzString    @default(now())
   updatedAt   temporal.updatedAtString()
 }
 
 model PracticeAttempt {
-  id         Int      @id @default(autoincrement())
+  id         Int               @id @default(autoincrement())
   userId     Int
   phrase     String
   score      Int
   difficulty String
   status     String
   createdAt  TimestamptzString @default(now())
-  user       User     @relation(fields: [userId], references: [id])
+  user       User              @relation(fields: [userId], references: [id])
+}
+
+model UserLessonProgress {
+  id          Int               @id @default(autoincrement())
+  userId      Int
+  lessonId    Int
+  completed   Boolean           @default(true)
+  completedAt TimestamptzString @default(now())
+  user        User              @relation(fields: [userId], references: [id])
+  lesson      Lesson            @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId])
+}
+
+model Vocabulary {
+  id           Int                      @id @default(autoincrement())
+  word         String                   @unique
+  definition   String
+  partOfSpeech String?
+  example      String?
+  createdAt    TimestamptzString        @default(now())
+  updatedAt    temporal.updatedAtString()
+  learners     UserVocabularyProgress[]
+}
+
+model UserVocabularyProgress {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  vocabId   Int
+  learned   Boolean           @default(true)
+  learnedAt TimestamptzString @default(now())
+  user      User              @relation(fields: [userId], references: [id])
+  vocab     Vocabulary        @relation(fields: [vocabId], references: [id])
+
+  @@unique([userId, vocabId])
 }

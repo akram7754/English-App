@@ -50,6 +50,16 @@ export default async function UserDashboardPage() {
   // Filter posts created by Sarah for this specific view (or list all entries)
   const userPosts = posts.filter((post) => post.authorId === user.id);
 
+  let completedCount = 0;
+  let vocabCount = 0;
+
+  try {
+    completedCount = await db.orm.public.UserLessonProgress.where({ userId: user.id }).count() as unknown as number;
+    vocabCount = await db.orm.public.UserVocabularyProgress.where({ userId: user.id }).count() as unknown as number;
+  } catch (error) {
+    console.error("Failed to query user metrics:", error);
+  }
+
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans dark:bg-zinc-950 dark:text-zinc-50 overflow-hidden">
       
@@ -161,9 +171,11 @@ export default async function UserDashboardPage() {
             <div className="space-y-1">
               <h1 className="text-3xl font-extrabold tracking-tight">{user.name}</h1>
               <p className="text-indigo-200 text-sm">@{user.username} • Level: Intermediate</p>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/25 text-white">Joined Aug 2026</span>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500 text-white">{userPosts.length} Writing Entries</span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500 text-white">{completedCount} Lessons Done</span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500 text-white">{vocabCount} Vocab Learned</span>
               </div>
             </div>
           </div>
