@@ -54,8 +54,8 @@ export default async function UserDashboardPage() {
   let vocabCount = 0;
 
   try {
-    completedCount = await db.orm.public.UserLessonProgress.where({ userId: user.id }).count() as unknown as number;
-    vocabCount = await db.orm.public.UserVocabularyProgress.where({ userId: user.id }).count() as unknown as number;
+    completedCount = (await db.orm.public.UserLessonProgress.where({ userId: user.id }).all()).length;
+    vocabCount = (await db.orm.public.UserVocabularyProgress.where({ userId: user.id }).all()).length;
   } catch (error) {
     console.error("Failed to query user metrics:", error);
   }

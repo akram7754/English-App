@@ -47,7 +47,7 @@ export async function completeLessonAction(lessonId: number) {
 export async function seedLessonsAndVocabularyAction() {
   try {
     // Check if lessons are empty
-    const lessonCount = await db.orm.public.Lesson.count() as unknown as number;
+    const lessonCount = (await db.orm.public.Lesson.all()).length;
     if (lessonCount === 0) {
       console.log("Seeding default lessons...");
       const defaultLessons = [
@@ -110,7 +110,7 @@ export async function seedLessonsAndVocabularyAction() {
     }
 
     // Check if vocabulary is empty
-    const vocabCount = await db.orm.public.Vocabulary.count() as unknown as number;
+    const vocabCount = (await db.orm.public.Vocabulary.all()).length;
     if (vocabCount === 0) {
       console.log("Seeding default vocabulary...");
       const defaultVocab = [
