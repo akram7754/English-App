@@ -3,16 +3,40 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
-import { saveAttemptAction } from "../ai-tutor/actions";
+import { analyzeSpeakingAction, getAttemptsAction } from "../ai-tutor/actions";
 
 interface PracticePhrase {
   text: string;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
 }
 
+interface Attempt {
+  id: number;
+  phrase: string;
+  score: number;
+  difficulty: string;
+  status: string;
+  transcript?: string | null;
+  grammarFeedback?: string | null;
+  fluencyFeedback?: string | null;
+  vocabFeedback?: string | null;
+  createdAt: string;
+}
+
 export default function VoicePracticePage() {
   const [userName, setUserName] = useState("Sarah Jenkins");
   const [userInitials, setUserInitials] = useState("SJ");
+  const [previousAttempts, setPreviousAttempts] = useState<Attempt[]>([]);
+
+  // Load User details and history
+  const loadHistory = async () => {
+    try {
+      const attempts = await getAttemptsAction();
+      setPreviousAttempts(attempts as unknown as Attempt[]);
+    } catch (e) {
+      console.error("Failed to load speaking attempts history:", e);
+    }
+  };
 
   useEffect(() => {
     const match = document.cookie.match(new RegExp('(^| )user=([^;]+)'));
@@ -31,6 +55,7 @@ export default function VoicePracticePage() {
         window.location.href = "/login";
       }
     }
+    loadHistory();
   }, []);
 
   const [difficulty, setDifficulty] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
@@ -38,8 +63,13 @@ export default function VoicePracticePage() {
   const [isRecording, setIsRecording] = useState(false);
   const [transcribedText, setTranscribedText] = useState("");
   const [score, setScore] = useState<number | null>(null);
+  const [grammarFeedback, setGrammarFeedback] = useState("");
+  const [fluencyFeedback, setFluencyFeedback] = useState("");
+  const [vocabFeedback, setVocabFeedback] = useState("");
   const [feedback, setFeedback] = useState("");
   const [supported, setSupported] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"score" | "grammar" | "fluency" | "vocab">("score");
 
   const recognitionRef = useRef<any>(null);
 
@@ -74,6 +104,9 @@ export default function VoicePracticePage() {
           setIsRecording(true);
           setTranscribedText("");
           setScore(null);
+          setGrammarFeedback("");
+          setFluencyFeedback("");
+          setVocabFeedback("");
           setFeedback("");
         };
 
@@ -112,7 +145,6 @@ export default function VoicePracticePage() {
         console.error(err);
       }
     } else {
-      // Fallback simulated recording if browser does not support Web Speech API
       simulateRecording();
     }
   };
@@ -127,46 +159,49 @@ export default function VoicePracticePage() {
     setIsRecording(true);
     setTranscribedText("");
     setScore(null);
+    setGrammarFeedback("");
+    setFluencyFeedback("");
+    setVocabFeedback("");
     setFeedback("Recording... (Simulated)");
     
     setTimeout(() => {
       setIsRecording(false);
-      // Mock perfect reading or near perfect reading for demonstration
       const simulatedText = targetPhrase.text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"");
       setTranscribedText(simulatedText);
       analyzeSpeech(simulatedText, targetPhrase.text);
     }, 3000);
   };
 
-  const calculateSimilarity = (str1: string, str2: string): number => {
-    const clean = (s: string) => s.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").split(/\s+/).filter(Boolean);
-    const w1 = clean(str1);
-    const w2 = clean(str2);
-    if (w1.length === 0 || w2.length === 0) return 0;
-    
-    let matches = 0;
-    w1.forEach(word => {
-      if (w2.includes(word)) matches++;
-    });
-    return Math.round((matches / Math.max(w1.length, w2.length)) * 100);
-  };
-
   const analyzeSpeech = async (spoken: string, target: string) => {
-    const similarityScore = calculateSimilarity(spoken, target);
-    setScore(similarityScore);
-
-    if (similarityScore >= 90) {
-      setFeedback("🎉 Excellent! Your pronunciation and word matching is near-perfect. Keep it up!");
-    } else if (similarityScore >= 70) {
-      setFeedback("👍 Good job! Your pronunciation is clear, but check a few words that might have been skipped or misheard.");
-    } else {
-      setFeedback("🗣️ Keep practicing! Try speaking slowly, enunciating each word clearly, and ensure there's no background noise.");
-    }
-
+    setAnalyzing(true);
+    setFeedback("Analyzing your speech with Gemini...");
     try {
-      await saveAttemptAction(target, similarityScore, targetPhrase.difficulty);
+      const res = await analyzeSpeakingAction(target, spoken, difficulty);
+      setAnalyzing(false);
+      if (res.success && res.attempt) {
+        const attempt = res.attempt as unknown as Attempt;
+        setScore(attempt.score);
+        setGrammarFeedback(attempt.grammarFeedback || "No grammar issues found.");
+        setFluencyFeedback(attempt.fluencyFeedback || "Good fluency.");
+        setVocabFeedback(attempt.vocabFeedback || "Appropriate vocabulary.");
+        
+        if (attempt.score >= 90) {
+          setFeedback("🎉 Excellent job! Keep it up.");
+        } else if (attempt.score >= 75) {
+          setFeedback("👍 Good progress. Review details below.");
+        } else {
+          setFeedback("🗣️ Keep practicing to improve accuracy.");
+        }
+        
+        // Refresh attempts list
+        loadHistory();
+      } else {
+        setFeedback("Failed to save attempt to PostgreSQL.");
+      }
     } catch (e) {
-      console.error("Failed to persist attempt:", e);
+      setAnalyzing(false);
+      console.error(e);
+      setFeedback("An error occurred during speech analysis.");
     }
   };
 
@@ -174,7 +209,11 @@ export default function VoicePracticePage() {
     setPhraseIndex((prev) => (prev + 1) % currentPhrases.length);
     setTranscribedText("");
     setScore(null);
+    setGrammarFeedback("");
+    setFluencyFeedback("");
+    setVocabFeedback("");
     setFeedback("");
+    setActiveTab("score");
   };
 
   return (
@@ -257,7 +296,7 @@ export default function VoicePracticePage() {
             <form action={logoutAction} className="w-full">
               <button type="submit" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white text-left transition">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3 3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
                 Logout / Exit
               </button>
@@ -296,6 +335,9 @@ export default function VoicePracticePage() {
                 setPhraseIndex(0);
                 setTranscribedText("");
                 setScore(null);
+                setGrammarFeedback("");
+                setFluencyFeedback("");
+                setVocabFeedback("");
                 setFeedback("");
               }}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition ${
@@ -351,8 +393,9 @@ export default function VoicePracticePage() {
                 </button>
               ) : (
                 <button
+                  disabled={analyzing}
                   onClick={startRecording}
-                  className="w-16 h-16 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-lg transition"
+                  className="w-16 h-16 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-lg transition disabled:opacity-55"
                 >
                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -368,14 +411,15 @@ export default function VoicePracticePage() {
               </button>
             </div>
             <p className="text-xs text-zinc-400 font-medium">
-              {isRecording ? "Listening... Speak now." : "Click the microphone button to start recording."}
+              {isRecording ? "Listening... Speak now." : analyzing ? "Gemini is analyzing..." : "Click the microphone button to start recording."}
             </p>
           </div>
 
           {/* Results panel */}
           {(transcribedText || score !== null || feedback) && (
             <div className="space-y-6 pt-2">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                
                 {/* Score Circular gauge */}
                 {score !== null && (
                   <div className="flex flex-col items-center justify-center p-4 bg-zinc-50 border border-zinc-100 rounded-2xl dark:bg-zinc-950/20 dark:border-zinc-800/80">
@@ -383,21 +427,52 @@ export default function VoicePracticePage() {
                     <div className="relative w-20 h-20 flex items-center justify-center mt-2 shrink-0">
                       <svg className="w-20 h-20 transform -rotate-90">
                         <circle cx="40" cy="40" r="32" className="stroke-zinc-200 dark:stroke-zinc-800" strokeWidth="6" fill="transparent" />
-                        <circle cx="40" cy="40" r="32" className={score >= 90 ? "stroke-green-500" : score >= 70 ? "stroke-amber-500" : "stroke-red-500"} strokeWidth="6" fill="transparent" strokeDasharray={201} strokeDashoffset={201 - (201 * score) / 100} />
+                        <circle cx="40" cy="40" r="32" className={score >= 90 ? "stroke-green-500" : score >= 75 ? "stroke-amber-500" : "stroke-red-500"} strokeWidth="6" fill="transparent" strokeDasharray={201} strokeDashoffset={201 - (201 * score) / 100} />
                       </svg>
-                      <span className={`absolute text-lg font-extrabold ${score >= 90 ? "text-green-500" : score >= 70 ? "text-amber-500" : "text-red-500"}`}>{score}%</span>
+                      <span className={`absolute text-lg font-extrabold ${score >= 90 ? "text-green-500" : score >= 75 ? "text-amber-500" : "text-red-500"}`}>{score}%</span>
                     </div>
                   </div>
                 )}
 
-                {/* Spoken transcription */}
-                <div className="md:col-span-2 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Your Spoken Text:</p>
-                  <p className="text-md font-bold text-zinc-850 dark:text-zinc-200 italic">
-                    {transcribedText ? `"${transcribedText}"` : "No transcription captured..."}
-                  </p>
+                {/* Spoken transcription & Tabbed detailed feedback */}
+                <div className="md:col-span-2 space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Your Spoken Text:</p>
+                    <p className="text-md font-bold text-zinc-850 dark:text-zinc-200 italic">
+                      {transcribedText ? `"${transcribedText}"` : "No transcription captured..."}
+                    </p>
+                  </div>
+
                   {feedback && (
-                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300 pt-2">{feedback}</p>
+                    <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 pt-1">{feedback}</p>
+                  )}
+
+                  {score !== null && (
+                    <div className="border border-zinc-200 rounded-xl overflow-hidden mt-4 dark:border-zinc-800">
+                      <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                        {(["score", "grammar", "fluency", "vocab"] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition ${
+                              activeTab === tab
+                                ? "bg-white border-b-2 border-indigo-600 text-indigo-600 dark:bg-zinc-900"
+                                : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
+                            }`}
+                          >
+                            {tab}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="p-4 bg-white dark:bg-zinc-900 min-h-[100px] text-sm leading-relaxed text-zinc-650 dark:text-zinc-350">
+                        {activeTab === "score" && (
+                          <p>Target Phrase: <strong>"{targetPhrase.text}"</strong><br/><br/>Your match score is <strong>{score}%</strong>. This reflects the semantic and acoustic match rates between your spoken text and the target text.</p>
+                        )}
+                        {activeTab === "grammar" && <p className="whitespace-pre-line">{grammarFeedback}</p>}
+                        {activeTab === "fluency" && <p className="whitespace-pre-line">{fluencyFeedback}</p>}
+                        {activeTab === "vocab" && <p className="whitespace-pre-line">{vocabFeedback}</p>}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -405,6 +480,65 @@ export default function VoicePracticePage() {
           )}
 
         </div>
+
+        {/* Previous Attempts History listing */}
+        <div className="w-full max-w-3xl space-y-4">
+          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-250 flex items-center gap-2">
+            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            My Previous Speaking Attempts
+          </h2>
+
+          {previousAttempts.length === 0 ? (
+            <div className="p-6 bg-white border border-zinc-200/80 rounded-2xl text-center text-zinc-400 text-sm dark:bg-zinc-900 dark:border-zinc-800">
+              No speaking attempts recorded yet. Click the microphone above to start practicing!
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {previousAttempts.map((attempt) => (
+                <div key={attempt.id} className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm space-y-3 dark:bg-zinc-900 dark:border-zinc-800">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded dark:bg-indigo-950/40 dark:text-indigo-400">
+                      {attempt.difficulty}
+                    </span>
+                    <span className="text-xs text-zinc-400">
+                      {new Date(attempt.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Target Phrase:</p>
+                    <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">"{attempt.phrase}"</p>
+                  </div>
+                  {attempt.transcript && (
+                    <div>
+                      <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">You Spoke:</p>
+                      <p className="text-sm italic text-zinc-650 dark:text-zinc-350">"{attempt.transcript}"</p>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between border-t border-zinc-50 pt-3 dark:border-zinc-800/80">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-zinc-400">Score:</span>
+                      <span className={`text-sm font-extrabold ${attempt.score >= 90 ? "text-green-500" : attempt.score >= 75 ? "text-amber-500" : "text-red-500"}`}>
+                        {attempt.score}%
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 font-bold rounded-full ${
+                        attempt.status === "Excellent"
+                          ? "bg-green-50 text-green-600 dark:bg-green-950/20"
+                          : attempt.status === "Good"
+                          ? "bg-amber-50 text-amber-600 dark:bg-amber-950/20"
+                          : "bg-red-50 text-red-600 dark:bg-red-950/20"
+                      }`}>
+                        {attempt.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </main>
     </div>
   );

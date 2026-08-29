@@ -48,14 +48,18 @@ model Lesson {
 }
 
 model PracticeAttempt {
-  id         Int               @id @default(autoincrement())
-  userId     Int
-  phrase     String
-  score      Int
-  difficulty String
-  status     String
-  createdAt  TimestamptzString @default(now())
-  user       User              @relation(fields: [userId], references: [id])
+  id                Int               @id @default(autoincrement())
+  userId            Int
+  phrase            String
+  score             Int
+  difficulty        String
+  status            String
+  transcript        String?
+  grammarFeedback   String?
+  fluencyFeedback   String?
+  vocabFeedback     String?
+  createdAt         TimestamptzString @default(now())
+  user              User              @relation(fields: [userId], references: [id])
 }
 
 model UserLessonProgress {

@@ -353,6 +353,20 @@
                   "kind": "scalar"
                 }
               },
+              "fluencyFeedback": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "grammarFeedback": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -381,10 +395,24 @@
                   "kind": "scalar"
                 }
               },
+              "transcript": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "userId": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "vocabFeedback": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               }
@@ -414,6 +442,12 @@
                 "difficulty": {
                   "column": "difficulty"
                 },
+                "fluencyFeedback": {
+                  "column": "fluencyFeedback"
+                },
+                "grammarFeedback": {
+                  "column": "grammarFeedback"
+                },
                 "id": {
                   "column": "id"
                 },
@@ -426,8 +460,14 @@
                 "status": {
                   "column": "status"
                 },
+                "transcript": {
+                  "column": "transcript"
+                },
                 "userId": {
                   "column": "userId"
+                },
+                "vocabFeedback": {
+                  "column": "vocabFeedback"
                 }
               },
               "namespaceId": "public",
@@ -1094,6 +1134,16 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "fluencyFeedback": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "grammarFeedback": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/int4@1",
                   "default": {
@@ -1118,10 +1168,20 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "transcript": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "userId": {
                   "codecId": "pg/int4@1",
                   "nativeType": "int4",
                   "nullable": false
+                },
+                "vocabFeedback": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -1499,7 +1559,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "cc78fb0afa8ebff6b047cafea067489b7a9442ee55d1d67b46c6d01b6b2c6d2d"
+    "storageHash": "3797303933657daa59cca65427e217bf63829bb85a34b88be67133441fec7b82"
   },
   "execution": {
     "executionHash": "5041da0121be3a5ef5235867f54a48aa31c515bf203bf6c883db68a33797e52b",
