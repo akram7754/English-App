@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
-import { analyzeSpeakingAction, getAttemptsAction } from "../ai-tutor/actions";
+import { analyzeSpeakingAction, getAttemptsAction } from "./actions";
 
 interface PracticePhrase {
   text: string;
@@ -423,7 +423,7 @@ export default function VoicePracticePage() {
                 {/* Score Circular gauge */}
                 {score !== null && (
                   <div className="flex flex-col items-center justify-center p-4 bg-zinc-50 border border-zinc-100 rounded-2xl dark:bg-zinc-950/20 dark:border-zinc-800/80">
-                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Match Score</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">AI Speaking Score</span>
                     <div className="relative w-20 h-20 flex items-center justify-center mt-2 shrink-0">
                       <svg className="w-20 h-20 transform -rotate-90">
                         <circle cx="40" cy="40" r="32" className="stroke-zinc-200 dark:stroke-zinc-800" strokeWidth="6" fill="transparent" />
@@ -466,7 +466,15 @@ export default function VoicePracticePage() {
                       </div>
                       <div className="p-4 bg-white dark:bg-zinc-900 min-h-[100px] text-sm leading-relaxed text-zinc-650 dark:text-zinc-350">
                         {activeTab === "score" && (
-                          <p>Target Phrase: <strong>"{targetPhrase.text}"</strong><br/><br/>Your match score is <strong>{score}%</strong>. This reflects the semantic and acoustic match rates between your spoken text and the target text.</p>
+                          <div className="space-y-3">
+                            <p>Target Phrase: <strong>"{targetPhrase.text}"</strong></p>
+                            <p>Your AI-based speaking / communication score is <strong>{score}%</strong>. This reflects semantic matching, word flow, and structure analyzed by Gemini based on your speech transcription.</p>
+                            <div className="mt-3 p-3 bg-zinc-50 border border-zinc-150 rounded-lg text-xs text-zinc-500 dark:bg-zinc-950/40 dark:border-zinc-800 space-y-1">
+                              <p className="font-bold text-zinc-700 dark:text-zinc-400">⚠️ Disclaimer on Pronunciation Accuracy:</p>
+                              <p>This is an AI communication rating, not a true phone/phoneme-level pronunciation score. Ordinary browser Speech Recognition (Speech-to-Text) transcribes speech based on overall syntax models and cannot measure individual pronunciation sounds accurately.</p>
+                              <p className="italic">Note: This architecture is extensible to support specialized phoneme-level pronunciation scoring services in future versions.</p>
+                            </div>
+                          </div>
                         )}
                         {activeTab === "grammar" && <p className="whitespace-pre-line">{grammarFeedback}</p>}
                         {activeTab === "fluency" && <p className="whitespace-pre-line">{fluencyFeedback}</p>}
@@ -518,7 +526,7 @@ export default function VoicePracticePage() {
                   )}
                   <div className="flex items-center justify-between border-t border-zinc-50 pt-3 dark:border-zinc-800/80">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-zinc-400">Score:</span>
+                      <span className="text-xs font-bold text-zinc-400">AI Score:</span>
                       <span className={`text-sm font-extrabold ${attempt.score >= 90 ? "text-green-500" : attempt.score >= 75 ? "text-amber-500" : "text-red-500"}`}>
                         {attempt.score}%
                       </span>
