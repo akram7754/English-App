@@ -6,6 +6,7 @@ import { logoutAction } from "./login/actions";
 import { verifySession } from "../lib/auth";
 import { seedLessonsAndVocabularyAction } from "./lessons/actions";
 import WordOfTheDay from "./WordOfTheDay";
+import MobileHeader from "./components/MobileHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -207,8 +208,9 @@ export default async function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-y-auto">
+        <MobileHeader userName={userName} userInitials={userInitials} />
         {/* Top Header */}
-        <header className="h-16 border-b border-zinc-200/80 bg-white px-8 flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800/80 shrink-0">
+        <header className="h-16 border-b border-zinc-200/80 bg-white px-8 flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800/80 shrink-0 hidden md:flex">
           <div className="flex items-center gap-4 w-96">
             <div className="relative w-full">
               <input

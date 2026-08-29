@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { logoutAction } from "../login/actions";
 
 import { verifySession } from "../../lib/auth";
+import MobileHeader from "../components/MobileHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -162,6 +163,7 @@ export default async function UserDashboardPage() {
 
       {/* Main Content View */}
       <main className="flex-1 flex flex-col overflow-y-auto">
+        <MobileHeader userName={userName} userInitials={userInitials} />
         {/* Banner Profile Header */}
         <div className="bg-indigo-900 text-white p-8 md:p-12 relative shrink-0">
           <div className="flex flex-col md:flex-row md:items-center gap-6">

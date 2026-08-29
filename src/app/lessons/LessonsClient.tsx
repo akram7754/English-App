@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
 import { completeLessonAction } from "./actions";
+import MobileHeader from "../components/MobileHeader";
 
 interface Lesson {
   id: number;
@@ -25,6 +26,8 @@ export default function LessonsClient({
   userName = "Sarah Jenkins",
   initialCompletedLessonIds = [],
 }: LessonsClientProps) {
+  const userInitials = userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "SJ";
+
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(initialLessons[0] || null);
   const [completedLessonIds, setCompletedLessonIds] = useState<number[]>(initialCompletedLessonIds);
@@ -149,8 +152,10 @@ export default function LessonsClient({
         </div>
       </aside>
 
-      {/* Main View Area */}
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Main View Area Wrapper */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <MobileHeader userName={userName} userInitials={userInitials} />
+        <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Left Side: Lessons List */}
         <div className="flex-1 flex flex-col overflow-y-auto border-r border-zinc-200/80 p-8 dark:border-zinc-800/80">
           <div className="mb-6 shrink-0">
@@ -275,6 +280,7 @@ export default function LessonsClient({
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 }

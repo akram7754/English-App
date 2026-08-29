@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
+import MobileHeader from "../components/MobileHeader";
 
 interface Explanation {
   id: number;
@@ -257,8 +258,10 @@ export default function GrammarCorrectionPage() {
         </div>
       </aside>
 
-      {/* Main view area */}
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Main view area Wrapper */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <MobileHeader userName={userName} userInitials={userInitials} />
+        <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
         
         {/* Left Panel: Text Editor */}
         <div className="flex-1 flex flex-col p-8 overflow-y-auto border-r border-zinc-200/80 dark:border-zinc-800/80">
@@ -378,6 +381,7 @@ export default function GrammarCorrectionPage() {
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 }

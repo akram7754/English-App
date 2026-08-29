@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
 import { analyzeSpeakingAction, getAttemptsAction } from "./actions";
+import MobileHeader from "../components/MobileHeader";
 
 interface PracticePhrase {
   text: string;
@@ -317,13 +318,14 @@ export default function VoicePracticePage() {
       </aside>
 
       {/* Main Workspace */}
-      <main className="flex-1 flex flex-col overflow-y-auto p-8 space-y-8">
-        
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Voice Speaking Practice</h1>
-          <p className="text-zinc-500 text-sm mt-1">Read the phrase aloud to test your pronunciation accuracy in real-time.</p>
-        </div>
+      <main className="flex-1 flex flex-col overflow-y-auto">
+        <MobileHeader userName={userName} userInitials={userInitials} />
+        <div className="p-6 sm:p-8 space-y-8 flex-1">
+          {/* Header */}
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Voice Speaking Practice</h1>
+            <p className="text-zinc-500 text-sm mt-1">Read the phrase aloud to test your pronunciation accuracy in real-time.</p>
+          </div>
 
         {/* Level Filters */}
         <div className="flex gap-2">
@@ -546,7 +548,7 @@ export default function VoicePracticePage() {
             </div>
           )}
         </div>
-
+      </div>
       </main>
     </div>
   );

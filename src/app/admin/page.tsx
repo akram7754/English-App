@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { logoutAction } from "../login/actions";
 
 import { verifySession } from "../../lib/auth";
+import MobileHeader from "../components/MobileHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export default async function AdminPage() {
   if (!sessionUser) {
     redirect("/login");
   }
+
+  const userName = sessionUser.name || "Admin User";
+  const userInitials = userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "AD";
 
   let users: UserData[] = [];
   let lessons: LessonData[] = [];
@@ -154,13 +158,14 @@ export default async function AdminPage() {
       </aside>
 
       {/* Main Admin Dashboard */}
-      <main className="flex-1 overflow-y-auto p-8 space-y-8">
-        
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Admin Panel</h1>
-          <p className="text-zinc-500 text-sm mt-1">System dashboard to manage registered student profiles, database posts, and publish learning lessons.</p>
-        </div>
+      <main className="flex-1 overflow-y-auto">
+        <MobileHeader userName={userName} userInitials={userInitials} />
+        <div className="p-6 sm:p-8 space-y-8 flex-1">
+          {/* Header */}
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Admin Panel</h1>
+            <p className="text-zinc-500 text-sm mt-1">System dashboard to manage registered student profiles, database posts, and publish learning lessons.</p>
+          </div>
 
         {/* Overview Stats grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -305,7 +310,7 @@ export default async function AdminPage() {
             </form>
           </div>
         </div>
-
+      </div>
       </main>
     </div>
   );

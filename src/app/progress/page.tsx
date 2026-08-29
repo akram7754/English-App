@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
+import MobileHeader from "../components/MobileHeader";
 
 interface Unit {
   id: number;
@@ -184,13 +185,14 @@ export default function ProgressPage() {
       </aside>
 
       {/* Main progress center */}
-      <main className="flex-1 overflow-y-auto p-8 space-y-8">
-        
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">General Progress</h1>
-          <p className="text-zinc-500 text-sm mt-1">Centralized roadmap tracking curriculum units, enunciation scores, and active daily streaks.</p>
-        </div>
+      <main className="flex-1 overflow-y-auto">
+        <MobileHeader userName={userName} userInitials={userInitials} />
+        <div className="p-6 sm:p-8 space-y-8 flex-1">
+          {/* Header */}
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">General Progress</h1>
+            <p className="text-zinc-500 text-sm mt-1">Centralized roadmap tracking curriculum units, enunciation scores, and active daily streaks.</p>
+          </div>
 
         {/* Integrated metrics grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -354,7 +356,7 @@ export default function ProgressPage() {
             </div>
           </div>
         </div>
-
+      </div>
       </main>
     </div>
   );

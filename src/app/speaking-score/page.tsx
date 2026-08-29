@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
 import { getAttemptsAction } from "../ai-tutor/actions";
+import MobileHeader from "../components/MobileHeader";
 
 interface Attempt {
   id: number;
@@ -209,10 +210,11 @@ export default function SpeakingScorePage() {
       </aside>
 
       {/* Main progress center */}
-      <main className="flex-1 overflow-y-auto p-8 space-y-8">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center">
+      <main className="flex-1 overflow-y-auto">
+        <MobileHeader userName={userName} userInitials={userInitials} />
+        <div className="p-6 sm:p-8 space-y-8 flex-1">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Speaking Scores</h1>
             <p className="text-zinc-500 text-sm mt-1">Review your historical pronunciation progress and learn enunciation recommendations.</p>
@@ -381,7 +383,7 @@ export default function SpeakingScorePage() {
             </table>
           </div>
         </div>
-
+      </div>
       </main>
     </div>
   );

@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
 import { askTutorAction } from "./actions";
+import MobileHeader from "../components/MobileHeader";
 
 interface Message {
   id: string;
@@ -202,9 +203,9 @@ export default function AITutorPage() {
 
       {/* Chat Workspace Main Window */}
       <main className="flex-1 flex flex-col h-full overflow-hidden bg-zinc-50 dark:bg-zinc-950">
-        
+        <MobileHeader userName={userName} userInitials={userInitials} />
         {/* Chat Header */}
-        <header className="h-16 border-b border-zinc-200/80 bg-white px-8 flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800/80 shrink-0">
+        <header className="h-16 border-b border-zinc-200/80 bg-white px-8 flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800/80 shrink-0 hidden md:flex">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-100 rounded-full dark:bg-indigo-950 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">
               🤖
