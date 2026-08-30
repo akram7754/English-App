@@ -6,6 +6,7 @@ model User {
   username       String?
   name           String?
   passwordHash   String?
+  role           String                   @default("student")
   posts          Post[]
   attempts       PracticeAttempt[]
   lessonProgress UserLessonProgress[]

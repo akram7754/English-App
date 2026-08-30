@@ -511,6 +511,13 @@
                   "kind": "scalar"
                 }
               },
+              "role": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "updatedAt": {
                 "nullable": false,
                 "type": {
@@ -604,6 +611,9 @@
                 },
                 "passwordHash": {
                   "column": "passwordHash"
+                },
+                "role": {
+                  "column": "role"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
@@ -1254,6 +1264,15 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "role": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "student"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "nativeType": "timestamptz",
@@ -1559,7 +1578,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "3797303933657daa59cca65427e217bf63829bb85a34b88be67133441fec7b82"
+    "storageHash": "b510ddfef1ff5883fd816ff15a8f2baac4ec03427f6ca8cf99bae332bf37ae61"
   },
   "execution": {
     "executionHash": "5041da0121be3a5ef5235867f54a48aa31c515bf203bf6c883db68a33797e52b",

@@ -13,6 +13,12 @@ async function verifyAdminAuth() {
   if (!sessionUser) {
     throw new Error("Unauthorized access. Session not found.");
   }
+  
+  // Database lookup to confirm admin role
+  const user = await db.orm.public.User.where({ email: sessionUser.email }).first();
+  if (!user || user.role !== "admin") {
+    throw new Error("Unauthorized access. Admin privileges required.");
+  }
   return sessionUser;
 }
 
@@ -151,8 +157,14 @@ export async function deleteLessonAction(id: number) {
   if (!id) throw new Error("Lesson ID is required");
 
   try {
-    // Delete completions progress linked to this lesson first
-    await db.orm.public.UserLessonProgress.where({ lessonId: id }).delete();
+    // Check if any student has completion history
+    const completionsCount = (await db.orm.public.UserLessonProgress.where({ lessonId: id }).all()).length;
+    if (completionsCount > 0) {
+      return { 
+        success: false, 
+        error: "Cannot delete lesson because students have completion history. Please keep this lesson to preserve their progress." 
+      };
+    }
 
     await db.orm.public.Lesson.where({ id }).delete();
     revalidatePath("/admin");
@@ -224,8 +236,14 @@ export async function deleteVocabularyAction(id: number) {
   if (!id) throw new Error("Vocabulary ID is required");
 
   try {
-    // Delete vocabulary progress links first
-    await db.orm.public.UserVocabularyProgress.where({ vocabId: id }).delete();
+    // Check if any student has saved this vocabulary word
+    const progressCount = (await db.orm.public.UserVocabularyProgress.where({ vocabId: id }).all()).length;
+    if (progressCount > 0) {
+      return { 
+        success: false, 
+        error: "Cannot delete vocabulary word because students have saved it to their progress. Please keep this word to preserve their progress." 
+      };
+    }
 
     await db.orm.public.Vocabulary.where({ id }).delete();
     revalidatePath("/admin");

@@ -49,7 +49,13 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  const userName = sessionUser.name || "Admin User";
+  // Fetch the user from the database to check their role column
+  const dbUser = await db.orm.public.User.where({ email: sessionUser.email }).first();
+  if (!dbUser || dbUser.role !== "admin") {
+    redirect("/dashboard");
+  }
+
+  const userName = dbUser.name || dbUser.username || "Admin User";
   const userInitials = userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "AD";
 
   let users: UserData[] = [];
