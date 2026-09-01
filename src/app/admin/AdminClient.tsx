@@ -15,6 +15,7 @@ import {
   editVocabularyAction,
   deleteVocabularyAction,
   getUserProgressDetailAction,
+  getAdminAnalyticsAction,
 } from "./actions";
 
 interface UserData {
@@ -73,7 +74,7 @@ export default function AdminClient({
   userName,
   userInitials,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "courses" | "lessons" | "vocabulary" | "users">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "courses" | "lessons" | "vocabulary" | "users" | "analytics">("overview");
 
   // Local state for records
   const [users, setUsers] = useState<UserData[]>(initialUsers);
@@ -81,6 +82,10 @@ export default function AdminClient({
   const [lessons, setLessons] = useState<LessonData[]>(initialLessons);
   const [vocabularies, setVocabularies] = useState<VocabularyData[]>(initialVocabularies);
   const [attemptsCount, setAttemptsCount] = useState<number>(initialAttemptsCount);
+
+  // Analytics state
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   // Modals state
   const [showCourseModal, setShowCourseModal] = useState(false);
@@ -306,6 +311,27 @@ export default function AdminClient({
     }
   };
 
+  const handleTabChange = (tab: "overview" | "courses" | "lessons" | "vocabulary" | "users" | "analytics") => {
+    setActiveTab(tab);
+    if (tab === "analytics" && !analytics) {
+      loadAnalytics();
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const res = await getAdminAnalyticsAction();
+      if (res.success && res.analytics) {
+        setAnalytics(res.analytics);
+      }
+    } catch (e) {
+      console.error("Failed to load admin analytics:", e);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans dark:bg-zinc-950 dark:text-zinc-50 overflow-hidden">
       {/* Sidebar Navigation */}
@@ -323,6 +349,9 @@ export default function AdminClient({
           <nav className="space-y-1.5">
             <Link href="/" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               Dashboard
+            </Link>
+            <Link href="/voice-conversation" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition font-medium">
+              🎙️ AI Voice Tutor
             </Link>
             <Link href="/lessons" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               Lessons / Skills
@@ -359,12 +388,13 @@ export default function AdminClient({
           </nav>
         </div>
 
+        {/* Database Status Info */}
         <div className="p-6 border-t border-indigo-900/60 bg-indigo-950/50">
           <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-400" />
             <div className="text-xs text-indigo-200">
-              <p className="font-semibold text-white">Admin Console Live</p>
-              <p className="opacity-75">{users.length} system users</p>
+              <p className="font-semibold text-white">System Admin Active</p>
+              <p className="opacity-75">Phase 8 CMS & Analytics</p>
             </div>
           </div>
         </div>
@@ -384,17 +414,17 @@ export default function AdminClient({
 
             {/* Navigation Tabs */}
             <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl overflow-hidden overflow-x-auto shrink-0 pb-1">
-              {(["overview", "courses", "lessons", "vocabulary", "users"] as const).map((tab) => (
+              {(["overview", "courses", "lessons", "vocabulary", "users", "analytics"] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => handleTabChange(tab)}
                   className={`flex-1 py-3 px-6 text-xs font-bold uppercase tracking-wider transition shrink-0 ${
                     activeTab === tab
                       ? "bg-white border-b-2 border-indigo-600 text-indigo-600 dark:bg-zinc-900"
                       : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
                   }`}
                 >
-                  {tab === "users" ? "Students" : tab}
+                  {tab === "users" ? "Students" : tab === "analytics" ? "📈 System Analytics" : tab}
                 </button>
               ))}
             </div>
@@ -672,6 +702,160 @@ export default function AdminClient({
                     </table>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* TAB ANALYTICS */}
+            {activeTab === "analytics" && (
+              <div className="space-y-8">
+                {loadingAnalytics ? (
+                  <div className="p-12 text-center text-zinc-400 text-xs font-bold animate-pulse">
+                    Loading live system analytics and curriculum metrics...
+                  </div>
+                ) : analytics ? (
+                  <div className="space-y-8">
+                    {/* Top KPI Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
+                        <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Active Students</p>
+                        <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mt-1">{analytics.totalStudents}</p>
+                        <p className="text-xs text-indigo-500 font-medium mt-1">Platform Learners</p>
+                      </div>
+
+                      <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
+                        <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Lessons Completed</p>
+                        <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mt-1">{analytics.totalCompletions}</p>
+                        <p className="text-xs text-emerald-500 font-medium mt-1">Total Curriculum Completions</p>
+                      </div>
+
+                      <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
+                        <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Avg Speaking Score</p>
+                        <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mt-1">{analytics.averageSpeakingScore}%</p>
+                        <p className="text-xs text-zinc-400 mt-1">{analytics.totalAttempts} practice recordings</p>
+                      </div>
+
+                      <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
+                        <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Active Language Pairs</p>
+                        <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mt-1">
+                          {Object.keys(analytics.languageCounts).length}
+                        </p>
+                        <p className="text-xs text-purple-500 font-medium mt-1">Multilingual Routes</p>
+                      </div>
+                    </div>
+
+                    {/* Spaced Repetition Mastery Distribution & Language Pairs */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* SRS Mastery Distribution */}
+                      <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+                        <div>
+                          <h4 className="font-extrabold text-base text-zinc-900 dark:text-zinc-50">
+                            Vocabulary Spaced Repetition (SRS) Health
+                          </h4>
+                          <p className="text-xs text-zinc-400">Distribution of vocabulary words across mastery retention tiers.</p>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                          {[
+                            { label: "Level 1: New / 1-Day Review", count: analytics.masteryDistribution.level1, color: "bg-red-500" },
+                            { label: "Level 2: 3-Day Retention", count: analytics.masteryDistribution.level2, color: "bg-amber-500" },
+                            { label: "Level 3: 7-Day Retention", count: analytics.masteryDistribution.level3, color: "bg-blue-500" },
+                            { label: "Level 4: 14-Day Retention", count: analytics.masteryDistribution.level4, color: "bg-indigo-500" },
+                            { label: "Level 5: Mastered (30-Day)", count: analytics.masteryDistribution.level5, color: "bg-emerald-500" },
+                          ].map((tier, idx) => (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                                <span>{tier.label}</span>
+                                <span>{tier.count} words</span>
+                              </div>
+                              <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full ${tier.color}`}
+                                  style={{
+                                    width: `${Math.min(100, (tier.count / (vocabularies.length || 1)) * 100)}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Multilingual Learning Pairs */}
+                      <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+                        <div>
+                          <h4 className="font-extrabold text-base text-zinc-900 dark:text-zinc-50">
+                            Popular Language Combinations
+                          </h4>
+                          <p className="text-xs text-zinc-400">Active student pairings across native and target language tracks.</p>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                          {Object.entries(analytics.languageCounts).map(([pair, count], idx) => (
+                            <div
+                              key={idx}
+                              className="p-3.5 bg-zinc-50 dark:bg-zinc-950/30 rounded-xl border border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs"
+                            >
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200">{pair}</span>
+                              <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 rounded-full font-extrabold text-[11px]">
+                                {String(count)} students
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lesson Difficulty Ranking */}
+                    <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden dark:bg-zinc-900 dark:border-zinc-800">
+                      <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
+                        <h4 className="font-extrabold text-base text-zinc-900 dark:text-zinc-50">
+                          Curriculum Difficulty & Completion Rankings
+                        </h4>
+                        <p className="text-xs text-zinc-400">Sorted by completion volume and speaking attempt score averages.</p>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-zinc-500 dark:text-zinc-400">
+                          <thead className="bg-zinc-50 text-[10px] font-bold text-zinc-400 uppercase tracking-wider dark:bg-zinc-950/40">
+                            <tr>
+                              <th className="px-6 py-3">Lesson Title</th>
+                              <th className="px-6 py-3">Category</th>
+                              <th className="px-6 py-3">Level</th>
+                              <th className="px-6 py-3">Completions</th>
+                              <th className="px-6 py-3 text-right">Avg Score</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            {analytics.lessonStats.map((l: any) => (
+                              <tr key={l.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-950/10">
+                                <td className="px-6 py-4 font-bold text-zinc-900 dark:text-zinc-100">{l.title}</td>
+                                <td className="px-6 py-4">
+                                  <span className="px-2 py-0.5 bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded font-semibold text-[10px]">
+                                    {l.category}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 font-medium text-zinc-400">{l.difficulty}</td>
+                                <td className="px-6 py-4 font-bold text-indigo-600 dark:text-indigo-400">
+                                  {l.completionsCount} students
+                                </td>
+                                <td className="px-6 py-4 text-right font-black text-zinc-800 dark:text-zinc-200">
+                                  {l.averageScore}%
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-zinc-400 text-xs">
+                    Failed to load analytics. Click to reload.
+                    <button onClick={loadAnalytics} className="ml-2 font-bold text-indigo-600 hover:underline">
+                      Reload
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

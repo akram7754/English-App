@@ -76,6 +76,13 @@ export default function MobileHeader({ userName, userInitials }: MobileHeaderPro
                   Dashboard
                 </Link>
                 <Link
+                  href="/voice-conversation"
+                  onClick={toggleMenu}
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition font-medium text-white bg-indigo-900/60"
+                >
+                  🎙️ AI Voice Tutor
+                </Link>
+                <Link
                   href="/lessons"
                   onClick={toggleMenu}
                   className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"

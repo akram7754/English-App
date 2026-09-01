@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'b510ddfef1ff5883fd816ff15a8f2baac4ec03427f6ca8cf99bae332bf37ae61'>;
+  StorageHashBase<'6ba0d01bd311a5ed6a0d5cbe61b0d008da36dd9fa5cebe4f68a47155b45bc78e'>;
 export type ExecutionHash =
   ExecutionHashBase<'5041da0121be3a5ef5235867f54a48aa31c515bf203bf6c883db68a33797e52b'>;
 export type ProfileHash =
@@ -287,6 +287,10 @@ export type FieldOutputTypes = {
       readonly name: CodecTypes['pg/text@1']['output'] | null;
       readonly passwordHash: CodecTypes['pg/text@1']['output'] | null;
       readonly role: CodecTypes['pg/text@1']['output'];
+      readonly level: CodecTypes['pg/text@1']['output'];
+      readonly dailyGoalMinutes: CodecTypes['pg/int4@1']['output'];
+      readonly nativeLanguage: CodecTypes['pg/text@1']['output'];
+      readonly targetLanguage: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
@@ -302,6 +306,10 @@ export type FieldOutputTypes = {
       readonly userId: CodecTypes['pg/int4@1']['output'];
       readonly vocabId: CodecTypes['pg/int4@1']['output'];
       readonly learned: CodecTypes['pg/bool@1']['output'];
+      readonly masteryLevel: CodecTypes['pg/int4@1']['output'];
+      readonly reviewCount: CodecTypes['pg/int4@1']['output'];
+      readonly lastReviewedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly nextReviewAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly learnedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
     readonly Vocabulary: {
@@ -363,6 +371,10 @@ export type FieldInputTypes = {
       readonly name: CodecTypes['pg/text@1']['input'] | null;
       readonly passwordHash: CodecTypes['pg/text@1']['input'] | null;
       readonly role: CodecTypes['pg/text@1']['input'];
+      readonly level: CodecTypes['pg/text@1']['input'];
+      readonly dailyGoalMinutes: CodecTypes['pg/int4@1']['input'];
+      readonly nativeLanguage: CodecTypes['pg/text@1']['input'];
+      readonly targetLanguage: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
@@ -378,6 +390,10 @@ export type FieldInputTypes = {
       readonly userId: CodecTypes['pg/int4@1']['input'];
       readonly vocabId: CodecTypes['pg/int4@1']['input'];
       readonly learned: CodecTypes['pg/bool@1']['input'];
+      readonly masteryLevel: CodecTypes['pg/int4@1']['input'];
+      readonly reviewCount: CodecTypes['pg/int4@1']['input'];
+      readonly lastReviewedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly nextReviewAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly learnedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly Vocabulary: {
@@ -434,11 +450,15 @@ export type StorageColumnTypes = {
     };
     readonly user: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly dailyGoalMinutes: CodecTypes['pg/int4@1']['output'];
       readonly email: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly level: CodecTypes['pg/text@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'] | null;
+      readonly nativeLanguage: CodecTypes['pg/text@1']['output'];
       readonly passwordHash: CodecTypes['pg/text@1']['output'] | null;
       readonly role: CodecTypes['pg/text@1']['output'];
+      readonly targetLanguage: CodecTypes['pg/text@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly username: CodecTypes['pg/text@1']['output'] | null;
     };
@@ -451,8 +471,12 @@ export type StorageColumnTypes = {
     };
     readonly userVocabularyProgress: {
       readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly lastReviewedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly learned: CodecTypes['pg/bool@1']['output'];
       readonly learnedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly masteryLevel: CodecTypes['pg/int4@1']['output'];
+      readonly nextReviewAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly reviewCount: CodecTypes['pg/int4@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
       readonly vocabId: CodecTypes['pg/int4@1']['output'];
     };
@@ -510,11 +534,15 @@ export type StorageColumnInputTypes = {
     };
     readonly user: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly dailyGoalMinutes: CodecTypes['pg/int4@1']['input'];
       readonly email: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly level: CodecTypes['pg/text@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'] | null;
+      readonly nativeLanguage: CodecTypes['pg/text@1']['input'];
       readonly passwordHash: CodecTypes['pg/text@1']['input'] | null;
       readonly role: CodecTypes['pg/text@1']['input'];
+      readonly targetLanguage: CodecTypes['pg/text@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly username: CodecTypes['pg/text@1']['input'] | null;
     };
@@ -527,8 +555,12 @@ export type StorageColumnInputTypes = {
     };
     readonly userVocabularyProgress: {
       readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly lastReviewedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly learned: CodecTypes['pg/bool@1']['input'];
       readonly learnedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly masteryLevel: CodecTypes['pg/int4@1']['input'];
+      readonly nextReviewAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly reviewCount: CodecTypes['pg/int4@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
       readonly vocabId: CodecTypes['pg/int4@1']['input'];
     };
@@ -868,6 +900,42 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/text@1', 'student'>;
                   };
                 };
+                readonly level: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'Beginner'>;
+                  };
+                };
+                readonly dailyGoalMinutes: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 15>;
+                  };
+                };
+                readonly nativeLanguage: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'Hindi'>;
+                  };
+                };
+                readonly targetLanguage: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'English'>;
+                  };
+                };
                 readonly createdAt: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
@@ -994,6 +1062,36 @@ type ContractBase = Omit<
                     readonly kind: 'literal';
                     readonly value: DefaultLiteralValue<'pg/bool@1', true>;
                   };
+                };
+                readonly masteryLevel: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 1>;
+                  };
+                };
+                readonly reviewCount: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                };
+                readonly lastReviewedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly nextReviewAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                 };
                 readonly learnedAt: {
                   readonly nativeType: 'timestamptz';
@@ -1428,6 +1526,22 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly level: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly dailyGoalMinutes: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly nativeLanguage: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly targetLanguage: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -1496,6 +1610,10 @@ type ContractBase = Omit<
                 readonly name: { readonly column: 'name' };
                 readonly passwordHash: { readonly column: 'passwordHash' };
                 readonly role: { readonly column: 'role' };
+                readonly level: { readonly column: 'level' };
+                readonly dailyGoalMinutes: { readonly column: 'dailyGoalMinutes' };
+                readonly nativeLanguage: { readonly column: 'nativeLanguage' };
+                readonly targetLanguage: { readonly column: 'targetLanguage' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };
@@ -1578,6 +1696,28 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
               };
+              readonly masteryLevel: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly reviewCount: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly lastReviewedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly nextReviewAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
               readonly learnedAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -1615,6 +1755,10 @@ type ContractBase = Omit<
                 readonly userId: { readonly column: 'userId' };
                 readonly vocabId: { readonly column: 'vocabId' };
                 readonly learned: { readonly column: 'learned' };
+                readonly masteryLevel: { readonly column: 'masteryLevel' };
+                readonly reviewCount: { readonly column: 'reviewCount' };
+                readonly lastReviewedAt: { readonly column: 'lastReviewedAt' };
+                readonly nextReviewAt: { readonly column: 'nextReviewAt' };
                 readonly learnedAt: { readonly column: 'learnedAt' };
               };
             };

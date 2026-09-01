@@ -7,6 +7,10 @@ model User {
   name           String?
   passwordHash   String?
   role           String                   @default("student")
+  level          String                   @default("Beginner")
+  dailyGoalMinutes Int                    @default(15)
+  nativeLanguage String                   @default("Hindi")
+  targetLanguage String                   @default("English")
   posts          Post[]
   attempts       PracticeAttempt[]
   lessonProgress UserLessonProgress[]
@@ -87,13 +91,17 @@ model Vocabulary {
 }
 
 model UserVocabularyProgress {
-  id        Int               @id @default(autoincrement())
-  userId    Int
-  vocabId   Int
-  learned   Boolean           @default(true)
-  learnedAt TimestamptzString @default(now())
-  user      User              @relation(fields: [userId], references: [id])
-  vocab     Vocabulary        @relation(fields: [vocabId], references: [id])
+  id              Int               @id @default(autoincrement())
+  userId          Int
+  vocabId         Int
+  learned         Boolean           @default(true)
+  masteryLevel    Int               @default(1)
+  reviewCount     Int               @default(0)
+  lastReviewedAt  TimestamptzString @default(now())
+  nextReviewAt    TimestamptzString @default(now())
+  learnedAt       TimestamptzString @default(now())
+  user            User              @relation(fields: [userId], references: [id])
+  vocab           Vocabulary        @relation(fields: [vocabId], references: [id])
 
   @@unique([userId, vocabId])
 }

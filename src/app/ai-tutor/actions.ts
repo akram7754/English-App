@@ -5,15 +5,43 @@ import { db } from "../../prisma/db";
 import { cookies } from "next/headers";
 import { verifySession } from "../../lib/auth";
 
+import { getPersonalizedLearningProfile } from "../../lib/learning-engine";
+
 export async function askTutorAction(history: { sender: "user" | "ai"; text: string }[], message: string) {
   if (!message) return "Please enter a message.";
 
+  const cookieStore = await cookies();
+  const userCookie = cookieStore.get("user")?.value;
+  const sessionUser = userCookie ? verifySession(userCookie) : null;
+
+  let personalizedContext = "";
+  if (sessionUser?.email) {
+    try {
+      const profile = await getPersonalizedLearningProfile(sessionUser.email);
+      if (profile) {
+        const weakList = profile.detectedWeaknesses.map((w) => w.title).join(", ");
+        personalizedContext =
+          `\n[STUDENT LEARNING PROFILE]\n` +
+          `• Student Name: ${profile.userName}\n` +
+          `• Proficiency Level: ${profile.level}\n` +
+          `• Native Language: ${profile.nativeLanguage} | Target Language: ${profile.targetLanguage}\n` +
+          `• Identified Weak Grammar/Fluency Areas: ${weakList || "None recorded"}\n` +
+          `• Next Recommended Lesson: ${profile.nextRecommendedLesson?.title || "Conversational English"}\n` +
+          `INSTRUCTION: Adapt your vocabulary complexity to ${profile.level} level. Naturally weave in practice opportunities for the student's weak areas (${weakList || "General Fluency"}) without lecturing unless they make a mistake.`;
+      }
+    } catch (e) {
+      console.warn("Could not retrieve personalized profile for AI tutor context:", e);
+    }
+  }
+
   const systemInstruction = 
-    `You are a friendly and encouraging English AI Tutor. Your goals are:\n` +
+    `You are a friendly, encouraging, and highly adaptive AI English Tutor.\n` +
+    `Your goals are:\n` +
     `1. Help the user improve their English spelling, grammar, and pronunciation.\n` +
     `2. Analyze the user's message for grammar mistakes. If any errors are found, highlight them clearly under a "💡 **Grammar Corrections:**" section showing the incorrect text, explanation, and the corrected version.\n` +
-    `3. Keep your conversational response natural, clear, and vocabulary-appropriate for an Intermediate English learner.\n` +
-    `4. Suggest one follow-up question or scenario at the very end of your message to keep the conversation going.\n\n` +
+    `3. Keep your conversational response natural, clear, and vocabulary-appropriate.\n` +
+    `4. Suggest one follow-up question or conversational prompt at the very end of your message to keep the dialogue flowing.\n` +
+    personalizedContext + `\n\n` +
     `Example output style:\n` +
     `"Hi there! Yes, let's practice.\n\n💡 **Grammar Corrections:**\n* *Incorrect:* 'She have'\n* *Correct:* 'She has' (use singular verbs with third-person pronoun 'she').\n\nNow, to continue, tell me about your day!"`;
 

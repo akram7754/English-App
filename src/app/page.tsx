@@ -7,6 +7,8 @@ import { verifySession } from "../lib/auth";
 import { seedLessonsAndVocabularyAction } from "./lessons/actions";
 import WordOfTheDay from "./WordOfTheDay";
 import MobileHeader from "./components/MobileHeader";
+import { getPersonalizedLearningProfile } from "../lib/learning-engine";
+import PersonalizedDashboardWidgets from "./components/PersonalizedDashboardWidgets";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +24,15 @@ export default async function Home() {
   await seedLessonsAndVocabularyAction();
 
   const userName = user.name || "Sarah Jenkins";
-  const userInitials = userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "SJ";
+  const userInitials = userName
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "SJ";
 
   let usersCount = 0;
   let connectionSuccess = false;
-  let completedCount = 0;
-  let totalCount = 0;
-  let learningPercentage = 0;
-  let learnedVocabCount = 0;
-  let streakDays = 0;
 
   // Word of the day variables
   let wordOfTheDay = {
@@ -38,7 +40,7 @@ export default async function Home() {
     word: "Ubiquitous",
     definition: "Present, appearing, or found everywhere.",
     partOfSpeech: "adjective",
-    example: "Cell phones are ubiquitous in modern society."
+    example: "Cell phones are ubiquitous in modern society.",
   };
   let wordSaved = false;
 
@@ -48,51 +50,10 @@ export default async function Home() {
     connectionSuccess = true;
 
     const dbUser = await db.orm.public.User.where({ email: user.email }).first();
-    if (dbUser) {
-      // 1. Completed lessons count
-      const completions = await db.orm.public.UserLessonProgress.where({ userId: dbUser.id }).all();
-      completedCount = completions.length;
 
-      // 2. Vocabulary learned count
-      const learnedVocab = await db.orm.public.UserVocabularyProgress.where({ userId: dbUser.id }).all();
-      learnedVocabCount = learnedVocab.length;
-
-      // 3. Streak calculation
-      const attempts = await db.orm.public.PracticeAttempt.where({ userId: dbUser.id }).all();
-      const dates = Array.from(new Set(attempts.map((a) => new Date(a.createdAt).toISOString().split("T")[0])));
-      dates.sort((a, b) => b.localeCompare(a)); // Sort descending
-
-      const todayStr = new Date().toISOString().split("T")[0];
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-      let checkDate = new Date();
-      if (!dates.includes(todayStr) && dates.includes(yesterdayStr)) {
-        checkDate = yesterday;
-      }
-
-      let current = checkDate;
-      while (true) {
-        const currentStr = current.toISOString().split("T")[0];
-        if (dates.includes(currentStr)) {
-          streakDays++;
-          current.setDate(current.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-    }
-
-    // 4. Total lessons
-    const lessons = await db.orm.public.Lesson.all();
-    totalCount = lessons.length;
-    learningPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-    // 5. Query word of the day from seeded DB
+    // Query word of the day from seeded DB
     const vocabularyList = await db.orm.public.Vocabulary.all();
     if (vocabularyList.length > 0) {
-      // Rotate word based on day of month to make it dynamic
       const index = new Date().getDate() % vocabularyList.length;
       const dbWord = vocabularyList[index];
       wordOfTheDay = {
@@ -100,13 +61,13 @@ export default async function Home() {
         word: dbWord.word,
         definition: dbWord.definition,
         partOfSpeech: dbWord.partOfSpeech || "noun",
-        example: dbWord.example || ""
+        example: dbWord.example || "",
       };
 
       if (dbUser) {
         const savedRecord = await db.orm.public.UserVocabularyProgress.where({
           userId: dbUser.id,
-          vocabId: dbWord.id
+          vocabId: dbWord.id,
         }).first();
         wordSaved = !!savedRecord;
       }
@@ -114,6 +75,9 @@ export default async function Home() {
   } catch (error: any) {
     console.error("Failed to query dashboard metrics:", error);
   }
+
+  // Fetch Phase 8 Personalized Profile
+  const profile = await getPersonalizedLearningProfile(user.email);
 
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans dark:bg-zinc-950 dark:text-zinc-50 overflow-hidden">
@@ -133,6 +97,10 @@ export default async function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
               </svg>
               Dashboard
+            </Link>
+            <Link href="/voice-conversation" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition font-medium">
+              <span className="text-base">🎙️</span>
+              AI Voice Tutor
             </Link>
             <Link href="/progress" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -197,9 +165,9 @@ export default async function Home() {
         {/* Database Status Footer info */}
         <div className="p-6 border-t border-indigo-900/60 bg-indigo-950/50">
           <div className="flex items-center gap-3">
-            <span className={`w-2.5 h-2.5 rounded-full ${connectionSuccess ? 'bg-green-400' : 'bg-red-400'}`} />
+            <span className={`w-2.5 h-2.5 rounded-full ${connectionSuccess ? "bg-green-400" : "bg-red-400"}`} />
             <div className="text-xs text-indigo-200">
-              <p className="font-semibold text-white">{connectionSuccess ? "Database Connected" : "DB Disconnected"}</p>
+              <p className="font-semibold text-white">{connectionSuccess ? "Learning Engine Active" : "DB Disconnected"}</p>
               <p className="opacity-75">{usersCount} system users</p>
             </div>
           </div>
@@ -215,7 +183,7 @@ export default async function Home() {
             <div className="relative w-full">
               <input
                 type="text"
-                placeholder="Search lessons, vocabulary..."
+                placeholder="Search lessons, vocabulary, grammar..."
                 className="w-full pl-10 pr-4 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:bg-zinc-800 dark:border-zinc-700"
               />
               <svg className="w-4 h-4 text-zinc-400 absolute left-3.5 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -227,7 +195,7 @@ export default async function Home() {
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{userName}</p>
-              <p className="text-xs text-zinc-400">Level: Intermediate</p>
+              <p className="text-xs text-zinc-400">Level: {profile?.level || "Beginner"}</p>
             </div>
             <div className="w-10 h-10 bg-indigo-100 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center font-bold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
               {userInitials}
@@ -235,64 +203,41 @@ export default async function Home() {
           </div>
         </header>
 
-        {/* Dashboard Panels */}
-        <div className="p-8 space-y-8 flex-1">
-          {/* Welcome Title */}
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Welcome back, {userName.split(" ")[0]}! 👋</h1>
-            <p className="text-zinc-500 text-sm mt-0.5">Let's continue learning English today.</p>
-          </div>
-
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Daily Streak */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
-              <div>
-                <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Daily Streak</p>
-                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">{streakDays} Days</p>
-                <p className="text-xs text-green-500 font-medium mt-1">{streakDays > 0 ? "Keep it up!" : "Start practicing to build streak!"}</p>
-              </div>
-              <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 dark:bg-amber-950/30">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Vocabulary */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
-              <div>
-                <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Vocabulary Learned</p>
-                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">{learnedVocabCount}</p>
-                <p className="text-xs text-zinc-400 mt-1">Seeded in database</p>
-              </div>
-              <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 dark:bg-indigo-950/30">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Lesson Progress */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
-              <div>
-                <p className="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Lesson Progress</p>
-                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">{learningPercentage}%</p>
-                <p className="text-xs text-zinc-400 mt-1">{completedCount} of {totalCount} lessons</p>
-              </div>
-              <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-                {/* Simple Circular Progress SVGs */}
-                <svg className="w-12 h-12 transform -rotate-90">
-                  <circle cx="24" cy="24" r="18" className="stroke-zinc-100 dark:stroke-zinc-800" strokeWidth="3" fill="transparent" />
-                  <circle cx="24" cy="24" r="18" className="stroke-indigo-500" strokeWidth="3" fill="transparent" strokeDasharray={113} strokeDashoffset={113 - (113 * learningPercentage) / 100} />
-                </svg>
-                <span className="absolute text-[10px] font-bold text-indigo-500">{learningPercentage}%</span>
-              </div>
-            </div>
-          </div>
+        {/* Dashboard Content */}
+        <div className="p-6 sm:p-8 space-y-8 flex-1">
+          
+          {/* Phase 8 Personalized Dashboard Widgets */}
+          {profile && <PersonalizedDashboardWidgets initialProfile={profile} />}
 
           {/* Feature Actions Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-2">
+            {/* AI Voice Tutor Spotlight Card */}
+            <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 text-white p-6 rounded-3xl shadow-md flex flex-col justify-between border border-indigo-800 relative overflow-hidden lg:col-span-3">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                <div className="space-y-3 max-w-2xl">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white uppercase tracking-wider">
+                      ✨ Two-Way Voice Speaking Tutor
+                    </span>
+                    <span className="text-xs text-indigo-200">
+                      {profile?.nativeLanguage || "Hindi"} ➔ {profile?.targetLanguage || "English"}
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-extrabold tracking-tight">Practice Speaking With AI Audio Feedback</h2>
+                  <p className="text-indigo-200 text-sm leading-relaxed">
+                    Speak your thought in your native language and the AI will immediately teach you the natural English expression, pronounce it aloud, and score your spoken pronunciation attempt!
+                  </p>
+                </div>
+                <Link
+                  href="/voice-conversation"
+                  className="px-6 py-3.5 bg-white text-indigo-950 hover:bg-indigo-50 font-bold rounded-xl text-sm transition shadow-lg shrink-0 flex items-center gap-2"
+                >
+                  <span className="text-lg">🎙️</span>
+                  Start Voice Practice
+                </Link>
+              </div>
+            </div>
+
             {/* Chat with AI Tutor */}
             <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col justify-between dark:bg-zinc-900 dark:border-zinc-800">
               <div className="space-y-4">
@@ -302,8 +247,10 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100">Chat with AI Tutor</h3>
-                  <p className="text-zinc-500 text-sm mt-1">Practice speaking & conversation with dynamic AI feedback on grammar, tone, and vocabulary.</p>
+                  <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100">Adaptive AI Tutor</h3>
+                  <p className="text-zinc-500 text-sm mt-1">
+                    Personalized conversation practice with dynamic feedback targeting your identified weak grammar areas.
+                  </p>
                 </div>
               </div>
               <Link href="/ai-tutor" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-xl text-sm transition mt-6 dark:bg-indigo-600 dark:hover:bg-indigo-700 flex items-center justify-center">
@@ -339,68 +286,6 @@ export default async function Home() {
             />
           </div>
 
-          {/* Learning Activity Chart Section */}
-          <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
-            <h3 className="font-bold text-zinc-900 dark:text-zinc-50 mb-6">Learning Activity</h3>
-
-            <div className="relative h-48 w-full flex items-end justify-between px-4">
-              {/* Mon */}
-              <div className="flex flex-col items-center gap-2 w-12 group">
-                <div className="relative w-8 bg-indigo-600 rounded-t-lg transition-all group-hover:bg-indigo-500" style={{ height: '70px' }}>
-                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">20</span>
-                </div>
-                <span className="text-xs text-zinc-400">Mon</span>
-              </div>
-              {/* Tue */}
-              <div className="flex flex-col items-center gap-2 w-12 group">
-                <div className="relative w-8 bg-indigo-600 rounded-t-lg transition-all group-hover:bg-indigo-500" style={{ height: '110px' }}>
-                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">30</span>
-                </div>
-                <span className="text-xs text-zinc-400">Tue</span>
-              </div>
-              {/* Wed */}
-              <div className="flex flex-col items-center gap-2 w-12 group">
-                <div className="relative w-8 bg-indigo-600 rounded-t-lg transition-all group-hover:bg-indigo-500" style={{ height: '80px' }}>
-                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">22</span>
-                </div>
-                <span className="text-xs text-zinc-400">Wed</span>
-              </div>
-              {/* Thu */}
-              <div className="flex flex-col items-center gap-2 w-12 group">
-                <div className="relative w-8 bg-indigo-600 rounded-t-lg transition-all group-hover:bg-indigo-500" style={{ height: '135px' }}>
-                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">36</span>
-                </div>
-                <span className="text-xs text-zinc-400">Thu</span>
-              </div>
-              {/* Fri */}
-              <div className="flex flex-col items-center gap-2 w-12 group">
-                <div className="relative w-8 bg-indigo-600 rounded-t-lg transition-all group-hover:bg-indigo-500" style={{ height: '120px' }}>
-                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">32</span>
-                </div>
-                <span className="text-xs text-zinc-400">Fri</span>
-              </div>
-              {/* Sat */}
-              <div className="flex flex-col items-center gap-2 w-12 group">
-                <div className="relative w-8 bg-indigo-600 rounded-t-lg transition-all group-hover:bg-indigo-500" style={{ height: '80px' }}>
-                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">22</span>
-                </div>
-                <span className="text-xs text-zinc-400">Sat</span>
-              </div>
-              {/* Sun */}
-              <div className="flex flex-col items-center gap-2 w-12 group">
-                <div className="relative w-8 bg-indigo-600 rounded-t-lg transition-all group-hover:bg-indigo-500" style={{ height: '100px' }}>
-                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">28</span>
-                </div>
-                <span className="text-xs text-zinc-400">Sun</span>
-              </div>
-
-              {/* Background grid lines */}
-              <div className="absolute left-0 right-0 top-0 border-t border-dashed border-zinc-100 dark:border-zinc-800 -z-10" />
-              <div className="absolute left-0 right-0 top-1/4 border-t border-dashed border-zinc-100 dark:border-zinc-800 -z-10" />
-              <div className="absolute left-0 right-0 top-2/4 border-t border-dashed border-zinc-100 dark:border-zinc-800 -z-10" />
-              <div className="absolute left-0 right-0 top-3/4 border-t border-dashed border-zinc-100 dark:border-zinc-800 -z-10" />
-            </div>
-          </div>
         </div>
       </main>
     </div>

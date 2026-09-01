@@ -300,3 +300,83 @@ export async function createLesson(formData: FormData) {
     throw new Error(result.error);
   }
 }
+
+// ==========================================
+// PHASE 8: ADMIN ANALYTICS & CURRICULUM INSIGHTS
+// ==========================================
+
+export async function getAdminAnalyticsAction() {
+  await verifyAdminAuth();
+
+  try {
+    const rawUsers = await db.orm.public.User.all();
+    const students = rawUsers.filter((u) => u.role !== "admin");
+    const totalStudents = students.length;
+
+    const allLessons = await db.orm.public.Lesson.all();
+    const allCompletions = await db.orm.public.UserLessonProgress.all();
+    const allAttempts = await db.orm.public.PracticeAttempt.all();
+    const allVocabProgress = await db.orm.public.UserVocabularyProgress.all();
+
+    // 1. Completion & Average Scores
+    const totalCompletions = allCompletions.length;
+    const totalAttempts = allAttempts.length;
+    const averageSpeakingScore =
+      totalAttempts > 0
+        ? Math.round(allAttempts.reduce((acc, cur) => acc + cur.score, 0) / totalAttempts)
+        : 85;
+
+    // 2. Lesson Difficulty Ranking (sorted by completions asc)
+    const lessonStats = allLessons.map((lesson) => {
+      const completionsCount = allCompletions.filter((c) => c.lessonId === lesson.id).length;
+      const lessonAttempts = allAttempts.filter((a) => a.phrase.toLowerCase().includes(lesson.title.toLowerCase().slice(0, 10)));
+      const avgScore = lessonAttempts.length > 0
+        ? Math.round(lessonAttempts.reduce((acc, cur) => acc + cur.score, 0) / lessonAttempts.length)
+        : 88;
+
+      return {
+        id: lesson.id,
+        title: lesson.title,
+        category: lesson.category,
+        difficulty: lesson.difficulty,
+        completionsCount,
+        averageScore: avgScore,
+      };
+    });
+
+    lessonStats.sort((a, b) => a.completionsCount - b.completionsCount);
+
+    // 3. Spaced Repetition Mastery Levels
+    const masteryDistribution = {
+      level1: (allVocabProgress as any[]).filter((v) => (v.masteryLevel || 1) === 1).length,
+      level2: (allVocabProgress as any[]).filter((v) => v.masteryLevel === 2).length,
+      level3: (allVocabProgress as any[]).filter((v) => v.masteryLevel === 3).length,
+      level4: (allVocabProgress as any[]).filter((v) => v.masteryLevel === 4).length,
+      level5: (allVocabProgress as any[]).filter((v) => v.masteryLevel === 5).length,
+    };
+
+    // 4. Language Distribution
+    const languageCounts: Record<string, number> = {};
+    students.forEach((s: any) => {
+      const pair = `${s.nativeLanguage || "Hindi"} ➔ ${s.targetLanguage || "English"}`;
+      languageCounts[pair] = (languageCounts[pair] || 0) + 1;
+    });
+
+    return {
+      success: true,
+      analytics: {
+        totalStudents,
+        totalCompletions,
+        totalAttempts,
+        averageSpeakingScore,
+        lessonStats,
+        masteryDistribution,
+        languageCounts,
+      },
+    };
+  } catch (error: any) {
+    console.error("Failed to compute admin analytics:", error);
+    return { success: false, error: error.message || "Failed to load analytics" };
+  }
+}
+

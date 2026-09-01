@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
 import MobileHeader from "../components/MobileHeader";
+import { getPersonalizedEngineDataAction } from "../dashboard/actions";
+import { PersonalizedLearningProfile } from "../../lib/learning-engine";
 
 interface Unit {
   id: number;
@@ -16,6 +18,7 @@ interface Unit {
 export default function ProgressPage() {
   const [userName, setUserName] = useState("Sarah Jenkins");
   const [userInitials, setUserInitials] = useState("SJ");
+  const [profile, setProfile] = useState<PersonalizedLearningProfile | null>(null);
 
   useEffect(() => {
     const match = document.cookie.match(new RegExp('(^| )user=([^;]+)'));
@@ -34,6 +37,10 @@ export default function ProgressPage() {
         window.location.href = "/login";
       }
     }
+
+    getPersonalizedEngineDataAction().then((data) => {
+      if (data) setProfile(data);
+    });
   }, []);
   const [units, setUnits] = useState<Unit[]>([
     {
@@ -105,6 +112,10 @@ export default function ProgressPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
               </svg>
               Dashboard
+            </Link>
+            <Link href="/voice-conversation" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition font-medium">
+              <span className="text-base">🎙️</span>
+              AI Voice Tutor
             </Link>
             <Link href="/lessons" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-indigo-900/40 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -200,15 +211,30 @@ export default function ProgressPage() {
           <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
             <div>
               <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Course Progress</p>
-              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mt-1">65%</p>
-              <p className="text-xs text-zinc-400 mt-1">Unit 4: In Progress</p>
+              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mt-1">
+                {profile ? `${profile.completionPercentage}%` : "65%"}
+              </p>
+              <p className="text-xs text-zinc-400 mt-1">
+                {profile ? `${profile.completedLessonsCount} of ${profile.totalLessonsCount} lessons` : "Unit 4: In Progress"}
+              </p>
             </div>
             <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
               <svg className="w-12 h-12 transform -rotate-90">
                 <circle cx="24" cy="24" r="18" className="stroke-zinc-100 dark:stroke-zinc-850" strokeWidth="4" fill="transparent" />
-                <circle cx="24" cy="24" r="18" className="stroke-indigo-500" strokeWidth="4" fill="transparent" strokeDasharray={113} strokeDashoffset={113 - (113 * 65) / 100} />
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="18"
+                  className="stroke-indigo-500"
+                  strokeWidth="4"
+                  fill="transparent"
+                  strokeDasharray={113}
+                  strokeDashoffset={113 - (113 * (profile?.completionPercentage ?? 65)) / 100}
+                />
               </svg>
-              <span className="absolute text-[10px] font-bold text-indigo-500">65%</span>
+              <span className="absolute text-[10px] font-bold text-indigo-500">
+                {profile?.completionPercentage ?? 65}%
+              </span>
             </div>
           </div>
 
@@ -216,23 +242,31 @@ export default function ProgressPage() {
           <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
             <div>
               <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Vocab Learned</p>
-              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mt-1">1,450</p>
-              <p className="text-xs text-green-500 mt-1">+12 words today</p>
+              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mt-1">
+                {profile ? profile.learnedVocabCount : "1,450"}
+              </p>
+              <p className="text-xs text-purple-500 font-medium mt-1">
+                {profile && profile.dueVocabReviewsCount > 0 ? `${profile.dueVocabReviewsCount} due for SRS review` : "✓ Up to date"}
+              </p>
             </div>
             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 dark:bg-indigo-950/30 shrink-0">
               📖
             </div>
           </div>
 
-          {/* Grammar accuracy */}
+          {/* Active Streak */}
           <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
             <div>
-              <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Grammar Accuracy</p>
-              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mt-1">92%</p>
-              <p className="text-xs text-zinc-400 mt-1">12 checks completed</p>
+              <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Active Study Streak</p>
+              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mt-1">
+                {profile ? `${profile.streakDays} Days` : "7 Days"}
+              </p>
+              <p className="text-xs text-amber-500 font-medium mt-1">
+                {profile && profile.streakDays > 0 ? "🔥 Consecutive streak" : "Practice today"}
+              </p>
             </div>
-            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 dark:bg-indigo-950/30 shrink-0">
-              ✍️
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 dark:bg-amber-950/30 shrink-0">
+              🔥
             </div>
           </div>
 
@@ -240,8 +274,12 @@ export default function ProgressPage() {
           <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800">
             <div>
               <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Speaking Score</p>
-              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mt-1">88%</p>
-              <p className="text-xs text-zinc-400 mt-1">24 practice runs</p>
+              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mt-1">
+                {profile ? `${profile.averageSpeakingScore}%` : "88%"}
+              </p>
+              <p className="text-xs text-zinc-400 mt-1">
+                {profile ? `${profile.speakingAttemptsCount} practice runs` : "24 practice runs"}
+              </p>
             </div>
             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 dark:bg-indigo-950/30 shrink-0">
               🗣️

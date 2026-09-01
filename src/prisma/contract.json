@@ -483,6 +483,13 @@
                   "kind": "scalar"
                 }
               },
+              "dailyGoalMinutes": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "email": {
                 "nullable": false,
                 "type": {
@@ -497,8 +504,22 @@
                   "kind": "scalar"
                 }
               },
+              "level": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "nativeLanguage": {
+                "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -512,6 +533,13 @@
                 }
               },
               "role": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "targetLanguage": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
@@ -600,20 +628,32 @@
                 "createdAt": {
                   "column": "createdAt"
                 },
+                "dailyGoalMinutes": {
+                  "column": "dailyGoalMinutes"
+                },
                 "email": {
                   "column": "email"
                 },
                 "id": {
                   "column": "id"
                 },
+                "level": {
+                  "column": "level"
+                },
                 "name": {
                   "column": "name"
+                },
+                "nativeLanguage": {
+                  "column": "nativeLanguage"
                 },
                 "passwordHash": {
                   "column": "passwordHash"
                 },
                 "role": {
                   "column": "role"
+                },
+                "targetLanguage": {
+                  "column": "targetLanguage"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
@@ -727,6 +767,13 @@
                   "kind": "scalar"
                 }
               },
+              "lastReviewedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
               "learned": {
                 "nullable": false,
                 "type": {
@@ -738,6 +785,27 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "masteryLevel": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "nextReviewAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "reviewCount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
                   "kind": "scalar"
                 }
               },
@@ -793,11 +861,23 @@
                 "id": {
                   "column": "id"
                 },
+                "lastReviewedAt": {
+                  "column": "lastReviewedAt"
+                },
                 "learned": {
                   "column": "learned"
                 },
                 "learnedAt": {
                   "column": "learnedAt"
+                },
+                "masteryLevel": {
+                  "column": "masteryLevel"
+                },
+                "nextReviewAt": {
+                  "column": "nextReviewAt"
+                },
+                "reviewCount": {
+                  "column": "reviewCount"
                 },
                 "userId": {
                   "column": "userId"
@@ -1240,6 +1320,15 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
+                "dailyGoalMinutes": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 15
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
                 "email": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -1254,10 +1343,28 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "level": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "Beginner"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
+                },
+                "nativeLanguage": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "Hindi"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
                 },
                 "passwordHash": {
                   "codecId": "pg/text@1",
@@ -1269,6 +1376,15 @@
                   "default": {
                     "kind": "literal",
                     "value": "student"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "targetLanguage": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "English"
                   },
                   "nativeType": "text",
                   "nullable": false
@@ -1416,6 +1532,15 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "lastReviewedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
                 "learned": {
                   "codecId": "pg/bool@1",
                   "default": {
@@ -1432,6 +1557,33 @@
                     "kind": "function"
                   },
                   "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "masteryLevel": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 1
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "nextReviewAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "reviewCount": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
                   "nullable": false
                 },
                 "userId": {
@@ -1578,7 +1730,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b510ddfef1ff5883fd816ff15a8f2baac4ec03427f6ca8cf99bae332bf37ae61"
+    "storageHash": "6ba0d01bd311a5ed6a0d5cbe61b0d008da36dd9fa5cebe4f68a47155b45bc78e"
   },
   "execution": {
     "executionHash": "5041da0121be3a5ef5235867f54a48aa31c515bf203bf6c883db68a33797e52b",

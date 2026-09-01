@@ -153,10 +153,16 @@ export async function learnVocabularyAction(vocabWord: string) {
     }).first();
 
     if (!existing) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
       await db.orm.public.UserVocabularyProgress.create({
         userId: user.id,
         vocabId: vocab.id,
         learned: true,
+        masteryLevel: 1,
+        reviewCount: 0,
+        lastReviewedAt: new Date().toISOString(),
+        nextReviewAt: tomorrow.toISOString(),
       });
     }
 
