@@ -21,12 +21,15 @@ export default async function LessonsPage() {
   const userName = sessionUser.name || "Sarah Jenkins";
   let lessons: any[] = [];
   let completedLessonIds: number[] = [];
+  let isAdmin = false;
 
+  let userRecord: any = null;
   try {
-    const user = await db.orm.public.User.where({ email: sessionUser.email }).first();
-    if (user) {
+    userRecord = await db.orm.public.User.where({ email: sessionUser.email }).first();
+    if (userRecord) {
+      isAdmin = userRecord.role === "admin";
       // Query completed lessons for this specific user
-      const completions = await db.orm.public.UserLessonProgress.where({ userId: user.id }).all();
+      const completions = await db.orm.public.UserLessonProgress.where({ userId: userRecord.id }).all();
       completedLessonIds = completions.map((c) => c.lessonId);
     }
     lessons = await db.orm.public.Lesson.all();
@@ -34,11 +37,18 @@ export default async function LessonsPage() {
     console.error("Failed to load lessons from database:", error);
   }
 
+  const realUserName = userRecord?.name || userRecord?.username || sessionUser.name || "Learner";
+  const userEmail = sessionUser.email;
+  const userLevel = userRecord?.level || "Beginner";
+
   return (
     <LessonsClient
       initialLessons={lessons}
-      userName={userName}
+      userName={realUserName}
+      userEmail={userEmail}
+      userLevel={userLevel}
       initialCompletedLessonIds={completedLessonIds}
+      isAdmin={isAdmin}
     />
   );
 }

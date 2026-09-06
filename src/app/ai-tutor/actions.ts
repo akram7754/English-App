@@ -7,6 +7,33 @@ import { verifySession } from "../../lib/auth";
 
 import { getPersonalizedLearningProfile } from "../../lib/learning-engine";
 
+async function callGeminiFast(params: {
+  contents: any;
+  config?: any;
+  timeoutMs?: number;
+}): Promise<string> {
+  const models = ["gemini-flash-lite-latest", "gemini-3.1-flash-lite"];
+  const timeoutMs = params.timeoutMs || 7000;
+
+  for (const model of models) {
+    try {
+      const callPromise = ai.models.generateContent({
+        model,
+        contents: params.contents,
+        ...(params.config ? { config: params.config } : {}),
+      });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("CALL_TIMEOUT")), timeoutMs)
+      );
+      const res: any = await Promise.race([callPromise, timeoutPromise]);
+      if (res?.text) return res.text;
+    } catch (e: any) {
+      console.warn(`[AI Tutor] Model ${model} failed or timed out (${e?.message}), trying fallback...`);
+    }
+  }
+  throw new Error("ALL_MODELS_FAILED");
+}
+
 export async function askTutorAction(history: { sender: "user" | "ai"; text: string }[], message: string) {
   if (!message) return "Please enter a message.";
 
@@ -45,22 +72,35 @@ export async function askTutorAction(history: { sender: "user" | "ai"; text: str
     `Example output style:\n` +
     `"Hi there! Yes, let's practice.\n\n💡 **Grammar Corrections:**\n* *Incorrect:* 'She have'\n* *Correct:* 'She has' (use singular verbs with third-person pronoun 'she').\n\nNow, to continue, tell me about your day!"`;
 
-  const contents = [
-    { role: "user", parts: [{ text: systemInstruction }] },
-    ...history.map((msg) => ({
+  // Build clean history turns without duplicating the message
+  const contents: { role: string; parts: { text: string }[] }[] = [];
+  for (const msg of history) {
+    contents.push({
       role: msg.sender === "user" ? "user" : "model",
       parts: [{ text: msg.text }],
-    })),
-    { role: "user", parts: [{ text: message }] }
-  ];
+    });
+  }
+
+  // Ensure current message is at the end
+  if (
+    contents.length === 0 ||
+    contents[contents.length - 1].parts[0].text !== message ||
+    contents[contents.length - 1].role !== "user"
+  ) {
+    contents.push({ role: "user", parts: [{ text: message }] });
+  }
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+    const text = await callGeminiFast({
       contents,
+      config: {
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        maxOutputTokens: 350,
+      },
+      timeoutMs: 6000,
     });
 
-    return response.text || "I'm sorry, I couldn't process that response.";
+    return text || "I'm sorry, I couldn't process that response.";
   } catch (error: any) {
     console.error("Gemini Tutor error:", error);
     
@@ -103,15 +143,16 @@ export async function askAssistantAction(message: string, promptType: string) {
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: [
-        { role: "user", parts: [{ text: systemInstruction }] },
-        { role: "user", parts: [{ text: message }] }
-      ],
+    const text = await callGeminiFast({
+      contents: [{ role: "user", parts: [{ text: message }] }],
+      config: {
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        maxOutputTokens: 350,
+      },
+      timeoutMs: 6000,
     });
 
-    return response.text || "No response generated.";
+    return text || "No response generated.";
   } catch (error) {
     console.error("Gemini Assistant error:", error);
     
@@ -223,12 +264,11 @@ export async function analyzeSpeakingAction(
     };
 
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+      const responseText = await callGeminiFast({
         contents: prompt,
+        timeoutMs: 6000,
       });
 
-      const responseText = response.text || "";
       const cleanJSON = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
       const parsed = JSON.parse(cleanJSON);
       if (typeof parsed.score === "number") result.score = parsed.score;

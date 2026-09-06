@@ -39,3 +39,18 @@ export function verifySession(token: string): any {
   }
   return null;
 }
+
+/**
+ * Generates a cryptographically strong random hex token for password resets.
+ */
+export function generateResetToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+/**
+ * Computes a SHA-256 hash of the reset token for secure database storage.
+ */
+export function hashResetToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+

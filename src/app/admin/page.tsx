@@ -6,22 +6,27 @@ import AdminClient from "./AdminClient";
 
 export const dynamic = "force-dynamic";
 
-interface UserData {
+export interface AdminUserData {
   id: number;
   email: string;
   name?: string | null;
   username?: string | null;
+  role?: string | null;
+  level?: string | null;
+  nativeLanguage?: string | null;
+  targetLanguage?: string | null;
+  dailyGoalMinutes?: number | null;
   createdAt: string;
 }
 
-interface CourseData {
+export interface AdminCourseData {
   id: number;
   title: string;
   description?: string | null;
   createdAt: string;
 }
 
-interface LessonData {
+export interface AdminLessonData {
   id: number;
   title: string;
   description: string;
@@ -32,12 +37,26 @@ interface LessonData {
   createdAt: string;
 }
 
-interface VocabularyData {
+export interface AdminVocabularyData {
   id: number;
   word: string;
   definition: string;
   partOfSpeech?: string | null;
   example?: string | null;
+  createdAt: string;
+}
+
+export interface AdminPracticeAttemptData {
+  id: number;
+  userId: number;
+  phrase: string;
+  score: number;
+  difficulty: string;
+  status: string;
+  transcript?: string | null;
+  grammarFeedback?: string | null;
+  fluencyFeedback?: string | null;
+  vocabFeedback?: string | null;
   createdAt: string;
 }
 
@@ -55,15 +74,20 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  const userName = dbUser.name || dbUser.username || "Admin User";
-  const userInitials = userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "AD";
+  const userName = dbUser.name || dbUser.username || "Super Administrator";
+  const userInitials =
+    userName
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "SA";
 
-  let users: UserData[] = [];
-  let courses: CourseData[] = [];
-  let lessons: LessonData[] = [];
-  let vocabularies: VocabularyData[] = [];
-  let attemptsCount = 0;
-  let postsCount = 0;
+  let users: AdminUserData[] = [];
+  let courses: AdminCourseData[] = [];
+  let lessons: AdminLessonData[] = [];
+  let vocabularies: AdminVocabularyData[] = [];
+  let practiceAttempts: AdminPracticeAttemptData[] = [];
 
   try {
     const rawUsers = await db.orm.public.User.all();
@@ -72,6 +96,11 @@ export default async function AdminPage() {
       email: u.email,
       name: u.name,
       username: u.username,
+      role: u.role,
+      level: u.level,
+      nativeLanguage: u.nativeLanguage,
+      targetLanguage: u.targetLanguage,
+      dailyGoalMinutes: u.dailyGoalMinutes,
       createdAt: String(u.createdAt),
     }));
 
@@ -105,11 +134,25 @@ export default async function AdminPage() {
       createdAt: String(v.createdAt),
     }));
 
-    attemptsCount = (await db.orm.public.PracticeAttempt.all()).length;
-    postsCount = (await db.orm.public.Post.all()).length;
+    const rawAttempts = await db.orm.public.PracticeAttempt.orderBy((m) => m.createdAt.desc()).all();
+    practiceAttempts = rawAttempts.map((a) => ({
+      id: a.id,
+      userId: a.userId,
+      phrase: a.phrase,
+      score: a.score,
+      difficulty: a.difficulty,
+      status: a.status,
+      transcript: a.transcript,
+      grammarFeedback: a.grammarFeedback,
+      fluencyFeedback: a.fluencyFeedback,
+      vocabFeedback: a.vocabFeedback,
+      createdAt: String(a.createdAt),
+    }));
   } catch (error) {
     console.error("Failed to query administration metrics in server layout:", error);
   }
+
+  const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 5);
 
   return (
     <AdminClient
@@ -117,10 +160,16 @@ export default async function AdminPage() {
       initialCourses={courses}
       initialLessons={lessons}
       initialVocabularies={vocabularies}
-      initialAttemptsCount={attemptsCount}
-      initialPostsCount={postsCount}
+      initialAttempts={practiceAttempts}
+      currentAdmin={{
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        username: dbUser.username,
+      }}
       userName={userName}
       userInitials={userInitials}
+      hasGeminiKey={hasGeminiKey}
     />
   );
 }

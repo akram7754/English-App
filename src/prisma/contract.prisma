@@ -15,6 +15,7 @@ model User {
   attempts       PracticeAttempt[]
   lessonProgress UserLessonProgress[]
   vocabProgress  UserVocabularyProgress[]
+  passwordResetTokens PasswordResetToken[]
   createdAt      TimestamptzString        @default(now())
   updatedAt      temporal.updatedAtString()
 }
@@ -104,4 +105,14 @@ model UserVocabularyProgress {
   vocab           Vocabulary        @relation(fields: [vocabId], references: [id])
 
   @@unique([userId, vocabId])
+}
+
+model PasswordResetToken {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  tokenHash String            @unique
+  expiresAt TimestamptzString
+  used      Boolean           @default(false)
+  createdAt TimestamptzString @default(now())
+  user      User              @relation(fields: [userId], references: [id])
 }

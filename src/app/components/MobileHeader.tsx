@@ -3,16 +3,37 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
+import UserProfileDropdown from "./UserProfileDropdown";
 
 interface MobileHeaderProps {
   userName: string;
   userInitials: string;
+  userEmail?: string;
+  userLevel?: string;
+  isAdmin?: boolean;
+  activeNav?: string;
 }
 
-export default function MobileHeader({ userName, userInitials }: MobileHeaderProps) {
+export default function MobileHeader({
+  userName,
+  userInitials,
+  userEmail,
+  userLevel,
+  isAdmin = false,
+  activeNav,
+}: MobileHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const getMobileItemClass = (key: string) => {
+    const isActive = activeNav === key;
+    return `flex items-center gap-3 px-4 py-2.5 rounded-lg transition ${
+      isActive
+        ? "bg-indigo-900 text-white font-medium shadow-sm"
+        : "hover:bg-indigo-900/40 hover:text-white text-indigo-100"
+    }`;
+  };
 
   return (
     <div className="md:hidden shrink-0">
@@ -38,9 +59,14 @@ export default function MobileHeader({ userName, userInitials }: MobileHeaderPro
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center font-bold text-white text-xs">
-            {userInitials}
-          </div>
+          <UserProfileDropdown
+            userName={userName}
+            userInitials={userInitials}
+            userEmail={userEmail}
+            userLevel={userLevel}
+            isAdmin={isAdmin}
+            variant="mobile"
+          />
         </div>
       </header>
 
@@ -68,83 +94,99 @@ export default function MobileHeader({ userName, userInitials }: MobileHeaderPro
               </div>
 
               <nav className="space-y-1">
+                {/* 1. Dashboard */}
                 <Link
                   href="/"
                   onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
+                  className={getMobileItemClass("dashboard")}
                 >
                   Dashboard
                 </Link>
+
+                {/* 2. AI Voice Tutor */}
                 <Link
                   href="/voice-conversation"
                   onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition font-medium text-white bg-indigo-900/60"
+                  className={getMobileItemClass("voice-conversation")}
                 >
                   🎙️ AI Voice Tutor
                 </Link>
-                <Link
-                  href="/lessons"
-                  onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
-                >
-                  Lessons / Skills
-                </Link>
-                <Link
-                  href="/ai-tutor"
-                  onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
-                >
-                  AI Tutor
-                </Link>
-                <Link
-                  href="/ai-chat"
-                  onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
-                >
-                  AI Chat
-                </Link>
-                <Link
-                  href="/voice-practice"
-                  onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
-                >
-                  Voice Practice
-                </Link>
-                <Link
-                  href="/grammar-correction"
-                  onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
-                >
-                  Grammar Check
-                </Link>
-                <Link
-                  href="/speaking-score"
-                  onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
-                >
-                  Speaking Score
-                </Link>
+
+                {/* 3. My Progress */}
                 <Link
                   href="/progress"
                   onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
+                  className={getMobileItemClass("progress")}
                 >
-                  Progress Track
+                  My Progress
                 </Link>
+
+                {/* 4. AI Tutor */}
                 <Link
-                  href="/admin"
+                  href="/ai-tutor"
                   onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
+                  className={getMobileItemClass("ai-tutor")}
                 >
-                  Admin Panel
+                  AI Tutor
                 </Link>
+
+                {/* 5. AI Chat */}
                 <Link
-                  href="/dashboard"
+                  href="/ai-chat"
                   onClick={toggleMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-indigo-900 transition"
+                  className={getMobileItemClass("ai-chat")}
                 >
-                  My Profile
+                  AI Chat
                 </Link>
+
+                {/* 6. Voice Practice */}
+                <Link
+                  href="/voice-practice"
+                  onClick={toggleMenu}
+                  className={getMobileItemClass("voice-practice")}
+                >
+                  Voice Practice
+                </Link>
+
+                {/* 7. Lessons / Skills */}
+                <Link
+                  href="/lessons"
+                  onClick={toggleMenu}
+                  className={getMobileItemClass("lessons")}
+                >
+                  Lessons / Skills
+                </Link>
+
+                {/* 8. Grammar Check */}
+                <Link
+                  href="/grammar-correction"
+                  onClick={toggleMenu}
+                  className={getMobileItemClass("grammar-correction")}
+                >
+                  Grammar Check
+                </Link>
+
+                {/* 9. Speaking Score */}
+                <Link
+                  href="/speaking-score"
+                  onClick={toggleMenu}
+                  className={getMobileItemClass("speaking-score")}
+                >
+                  Speaking Score
+                </Link>
+
+                {/* 10. Admin Panel (Admin Only) */}
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={toggleMenu}
+                    className={getMobileItemClass("admin")}
+                  >
+                    Admin Panel
+                  </Link>
+                )}
+
+                {/* Logout / Exit */}
                 <form action={logoutAction} className="w-full pt-4 border-t border-indigo-900/60 mt-4">
                   <button type="submit" className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-red-950/45 hover:text-red-300 text-left transition">
                     Logout / Exit
