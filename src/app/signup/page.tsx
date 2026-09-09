@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signupAction } from "../login/actions";
+import ThemeSwitcher from "../components/ThemeSwitcher";
 
 export default function SignupPage() {
   const [username, setUsername] = useState("");
@@ -38,7 +39,10 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 dark:bg-zinc-950 relative overflow-hidden">
       
-      {/* BACKGROUND VECTOR DECORATIONS (Mockup graphics match) */}
+      {/* Global Theme Toggle */}
+      <div className="absolute top-6 right-6 z-20">
+        <ThemeSwitcher />
+      </div>
       
       {/* Glowing AI Badge (Top Right) */}
       <div className="absolute top-[10%] right-[10%] md:right-[15%] hidden sm:flex flex-col items-center select-none animate-bounce" style={{ animationDuration: "6s" }}>

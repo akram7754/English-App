@@ -49,3 +49,8 @@ dist/
 /.cursor/
 /.devin/
 
+# local development scratch & test artifacts
+/scratch/
+phase22_prompt.txt
+*.log
+

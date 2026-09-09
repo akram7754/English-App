@@ -1,3 +1,8 @@
+import {
+  getRomanizedPronunciation,
+  containsArabic,
+} from "./transliteration";
+
 export type TutorPersonality =
   | "Friendly Teacher"
   | "Professional Interviewer"
@@ -44,6 +49,7 @@ export interface VoiceEvaluationMetrics {
 export interface VoiceTurnResult {
   aiReply?: string; // Natural conversational reply to user's speech
   targetPhrase: string; // Next question or target sentence in target language
+  pronunciation?: string; // Phonetic pronunciation in Roman/Latin letters for Arabic/non-Latin scripts
   nativeExplanation: string; // Meaning/hint in native language (e.g. Hindi)
   spokenText: string; // Combined audio string to speak via TTS
   evaluation?: VoiceEvaluationMetrics;
@@ -123,7 +129,8 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
       `{\n` +
       `  "aiReply": "Brief greeting in ${targetLanguage}",\n` +
       `  "targetPhrase": "Friendly opening question in ${targetLanguage}",\n` +
-      `  "nativeExplanation": "Translation and explanation of the question in ${sourceLanguage}",\n` +
+      `  "pronunciation": "Phonetic reading/transliteration in Roman/Latin letters (e.g. for Arabic: 'Sabah al-khair, kaifa haluka al-yawm?'). Required for Arabic or non-Latin target languages.",\n` +
+      `  "nativeExplanation": "Translation and explanation of the question in ${sourceLanguage} (e.g. Hindi: 'सुप्रभात, आज आप कैसे हैं?')",\n` +
       `  "spokenText": "Full text to speak aloud via TTS in ${targetLanguage} (greeting + question)",\n` +
       `  "questionNumber": 1,\n` +
       `  "totalQuestions": ${totalQuestions}\n` +
@@ -208,7 +215,8 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
     `{\n` +
     `  "aiReply": "Brief acknowledgment in ${targetLanguage} (or empty if targetPhrase covers it)",\n` +
     `  "targetPhrase": "Natural follow-up response or question in ${targetLanguage}",\n` +
-    `  "nativeExplanation": "Translation and explanation of the response/question in ${sourceLanguage}",\n` +
+    `  "pronunciation": "Phonetic reading/transliteration in Roman/Latin letters (e.g. for Arabic: 'Sabah al-khair, kaifa haluka al-yawm?'). Required for Arabic or non-Latin target languages.",\n` +
+    `  "nativeExplanation": "Translation and explanation of the response/question in ${sourceLanguage} (e.g. Hindi: 'सुप्रभात, आज आप कैसे हैं?')",\n` +
     `  "spokenText": "The complete, natural text to speak aloud via TTS in ${targetLanguage}",\n` +
     `  "questionNumber": ${Math.min(questionNumber + 1, totalQuestions)},\n` +
     `  "totalQuestions": ${totalQuestions},\n` +
@@ -453,6 +461,15 @@ export function validateAndSanitizeVoiceResponse(
     }
   }
 
+  // 9. Multilingual Pronunciation Gate: Ensure Arabic/non-Latin response has Roman pronunciation
+  const isArabicTarget =
+    payload.targetLanguage.toLowerCase().includes("ar") ||
+    containsArabic(result.spokenText || result.targetPhrase);
+  if (isArabicTarget && !result.pronunciation) {
+    const textToRomanize = result.spokenText || result.targetPhrase;
+    result.pronunciation = getRomanizedPronunciation(textToRomanize, "ar");
+  }
+
   return { result, wasModified: modified, reason };
 }
 
@@ -492,30 +509,32 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
 
   const isFrench =
     targetLanguage.toLowerCase().includes("french") || targetLanguage.toLowerCase().includes("fr");
+  const isArabic =
+    targetLanguage.toLowerCase().includes("arabic") || targetLanguage.toLowerCase().includes("ar");
 
   const isTeaOrCoffee =
     /^(tea\s*(please)?|coffee\s*(please)?|water\s*(please)?|un th[eé]|un caf[eé]|de l'eau)\b/i.test(
       textLower
     );
   const isGreeting =
-    /^(good morning|good afternoon|good evening|hello|hi|hey|bonjour|bonsoir|salut|hola|buenos dias|namaste)/i.test(
+    /^(good morning|good afternoon|good evening|hello|hi|hey|bonjour|bonsoir|salut|hola|buenos dias|namaste|صباح|أهلا|مرحبا)/i.test(
       textLower
     );
   const isSmallTalk =
-    /^(i'm good|i am good|i'm fine|i am fine|doing well|all good|ça va|ca va|bien|muy bien|theek hu)/i.test(
+    /^(i'm good|i am good|i'm fine|i am fine|doing well|all good|ça va|ca va|bien|muy bien|theek hu|بخير|الحمد لله)/i.test(
       textLower
     );
-  const isTired = /^(i am tired|i'm tired|fatigué|je suis fatigué)/i.test(textLower);
-  const isFootball = /^(i like football|i love football|j'aime le football|football)/i.test(textLower);
-  const isMarketing = /^(i work in marketing|je travaille dans le marketing|marketing)/i.test(textLower);
+  const isTired = /^(i am tired|i'm tired|fatigué|je suis fatigué|تعبان|أنا متعب)/i.test(textLower);
+  const isFootball = /^(i like football|i love football|j'aime le football|football|كرة القدم)/i.test(textLower);
+  const isMarketing = /^(i work in marketing|je travaille dans le marketing|marketing|تسويق|التسويق)/i.test(textLower);
   const isInterviewIntent =
-    /(interview|job|career|entretien|poste|travail|trabajo|naukri)/i.test(textLower);
+    /(interview|job|career|entretien|poste|travail|trabajo|naukri|مقابلة|وظيفة|عمل)/i.test(textLower);
   const isDontUnderstand =
-    /^(i don't understand|i do not understand|je ne comprends pas|could you repeat|pardon|i didn't understand)\b/i.test(
+    /^(i don't understand|i do not understand|je ne comprends pas|could you repeat|pardon|i didn't understand|لا أفهم|لم أفهم)\b/i.test(
       textLower
     );
   const isMeaningInquiry =
-    /^(what does this mean|what do you mean|qu'est-ce que [çc]a veut dire|c'est quoi|what does it mean)\b/i.test(
+    /^(what does this mean|what do you mean|qu'est-ce que [çc]a veut dire|c'est quoi|what does it mean|ما معنى|ماذا يعني)\b/i.test(
       textLower
     );
 
@@ -524,8 +543,12 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
   let native = "";
 
   if (isTeaOrCoffee) {
-    const isCoffee = textLower.includes("coffee") || textLower.includes("caf");
-    if (isFrench) {
+    const isCoffee = textLower.includes("coffee") || textLower.includes("caf") || textLower.includes("قهوة");
+    if (isArabic) {
+      reply = "بالتأكيد.";
+      question = isCoffee ? "تفضل القهوة، من فضلك." : "تفضل الشاي، من فضلك.";
+      native = isCoffee ? "ज़रूर। यह रही आपकी कॉफ़ी।" : "ज़रूर। यह रहा आपका चाय।";
+    } else if (isFrench) {
       reply = "Bien sûr.";
       question = `Un ${isCoffee ? "café" : "thé"}, s'il vous plaît.`;
       native = `Certainly. One ${isCoffee ? "coffee" : "tea"}, please.`;
@@ -538,7 +561,13 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
     nextQNum = questionNumber;
     const lastAi = [...conversationHistory].reverse().find((h) => h.role === "model");
     const prev = lastAi?.text || "";
-    if (isFrench) {
+    if (isArabic) {
+      reply = "لا مشكلة.";
+      question = prev
+        ? `سأعيد صياغة ذلك بشكل أبسط: "${prev}". هل هذا أوضح؟`
+        : "سأوضح ذلك بشكل أبسط من أجلك.";
+      native = "कोई बात नहीं, मैं इसे और सरल तरीके से समझाता हूँ।";
+    } else if (isFrench) {
       reply = "Pas de problème.";
       question = prev
         ? `Je reformule plus simplement : "${prev}". Est-ce plus clair pour vous ?`
@@ -555,7 +584,11 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
     nextQNum = questionNumber;
     const lastAi = [...conversationHistory].reverse().find((h) => h.role === "model");
     const prev = lastAi?.text || "";
-    if (sourceLanguage === "French") {
+    if (isArabic) {
+      reply = "المعنى هو:";
+      question = prev ? `معنى ذلك: "${prev}".` : "هذا هو المعنى.";
+      native = prev ? `इसका अर्थ है: "${prev}"` : "यहाँ इसका अर्थ है।";
+    } else if (sourceLanguage === "French") {
       reply = "Voici l'explication :";
       question = `En français, cela signifie : "${prev}".`;
       native = "Explication de la phrase en français.";
@@ -569,7 +602,11 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
       native = `Meaning in ${sourceLanguage}`;
     }
   } else if (isTired) {
-    if (isFrench) {
+    if (isArabic) {
+      reply = "يؤسفني سماع ذلك.";
+      question = "هل ترغب في أخذ استراحة قصيرة؟";
+      native = "मुझे यह सुनकर दुख हुआ। क्या आप थोड़ा आराम लेना चाहेंगे?";
+    } else if (isFrench) {
       reply = "Je suis désolé de l'entendre.";
       question = "Vous voulez faire une petite pause ?";
       native = "I'm sorry to hear that. Would you like to take a short break?";
@@ -579,7 +616,11 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
       native = "I'm sorry to hear that. Would you like to take a short break?";
     }
   } else if (isFootball) {
-    if (isFrench) {
+    if (isArabic) {
+      reply = "أنا أيضاً أحب الحديث عن كرة القدم.";
+      question = "ما هو فريقك المفضل؟";
+      native = "मुझे भी फ़ुटबॉल के बारे में बात करना पसंद है। आपकी पसंदीदा टीम कौन सी है?";
+    } else if (isFrench) {
       reply = "J'aime aussi parler de football.";
       question = "Quelle équipe aimez-vous ?";
       native = "I also enjoy talking about football. Which team do you like?";
@@ -589,7 +630,11 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
       native = "I also enjoy talking about football. Which team do you like?";
     }
   } else if (isMarketing) {
-    if (isFrench) {
+    if (isArabic) {
+      reply = "هذا مجال ممتع للغاية.";
+      question = "ما هو نوع التسويق الذي تعمل به؟";
+      native = "यह बहुत ही दिलचस्प क्षेत्र है। आप किस प्रकार के विपणन में काम करते हैं?";
+    } else if (isFrench) {
       reply = "C'est un domaine très dynamique.";
       question = "Quel type de marketing faites-vous ?";
       native = "That's a very dynamic field. What type of marketing do you do?";
@@ -599,7 +644,11 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
       native = "That is a very dynamic field. What type of marketing do you do?";
     }
   } else if (isGreeting) {
-    if (isFrench) {
+    if (isArabic) {
+      reply = "صباح الخير،";
+      question = "كيف حالك اليوم؟";
+      native = "सुप्रभात, आज आप कैसे हैं?";
+    } else if (isFrench) {
       reply = "Bonjour ! C'est un plaisir de vous rencontrer.";
       question = "Comment allez-vous aujourd'hui ?";
       native = "नमस्ते! आपसे मिलकर अच्छा लगा। आज आप कैसे हैं?";
@@ -609,7 +658,11 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
       native = "शुभ प्रभात! आपसे मिलकर अच्छा लगा। आज आप कैसे हैं?";
     }
   } else if (isSmallTalk) {
-    if (isFrench) {
+    if (isArabic) {
+      reply = "يسعدني سماع ذلك!";
+      question = "كيف يمكنني مساعدتك اليوم؟";
+      native = "यह सुनकर बहुत अच्छा लगा! आज मैं आपकी क्या मदद कर सकता हूँ?";
+    } else if (isFrench) {
       reply = "Ravi de l'entendre !";
       question = "Comment puis-je vous aider aujourd'hui ?";
       native = "यह सुनकर अच्छा लगा! आज मैं आपकी क्या मदद कर सकता हूँ?";
@@ -619,7 +672,11 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
       native = "यह सुनकर बहुत अच्छा लगा! आज मैं आपकी क्या मदद कर सकता हूँ?";
     }
   } else if (isInterviewIntent) {
-    if (isFrench) {
+    if (isArabic) {
+      reply = "أهلاً بك! دعنا نبدأ التدريب على المقابلة الشخصية.";
+      question = "في البداية، هل يمكنك التحدث عن نفسك باختصار؟";
+      native = "स्वागत है! चलिए नौकरी के साक्षात्कार का अभ्यास शुरू करते हैं। संक्षेप में अपना परिचय दीजिए।";
+    } else if (isFrench) {
       reply = "Bienvenue ! Commençons votre entraînement pour l'entretien d'embauche.";
       question = "Pour commencer, pouvez-vous vous présenter et décrire brièvement votre parcours ?";
       native = "स्वागत है! चलिए नौकरी के साक्षात्कार का अभ्यास शुरू करते हैं। संक्षेप में अपना परिचय दीजिए।";
@@ -629,7 +686,11 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
       native = "स्वागत है! चलिए नौकरी के साक्षात्कार का अभ्यास शुरू करते हैं। संक्षेप में अपना परिचय दीजिए।";
     }
   } else {
-    if (isFrench) {
+    if (isArabic) {
+      reply = "شكراً لإجابتك.";
+      question = "هل يمكنك إخباري بالمزيد عن ذلك؟";
+      native = "धन्यवाद। क्या आप मुझे इसके बारे में थोड़ा और बता सकते हैं?";
+    } else if (isFrench) {
       reply = "Merci pour votre réponse.";
       question = "Pouvez-vous m'en dire un peu plus à ce sujet ?";
       native = "धन्यवाद। क्या आप मुझे इस बारे में थोड़ा और बता सकते हैं?";
@@ -641,12 +702,17 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
   }
 
   const spokenText = `${reply} ${question}`.trim();
+  const pronunciation =
+    isArabic || containsArabic(spokenText)
+      ? getRomanizedPronunciation(spokenText, "ar")
+      : undefined;
 
   return {
     aiReply: reply,
     targetPhrase: question,
+    pronunciation,
     nativeExplanation:
-      sourceLanguage === "English" ? `${reply} ${question}`.trim() : native,
+      sourceLanguage === "English" && !isArabic ? `${reply} ${question}`.trim() : native,
     spokenText,
     questionNumber: nextQNum,
     totalQuestions,

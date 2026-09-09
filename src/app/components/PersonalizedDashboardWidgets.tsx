@@ -190,10 +190,48 @@ export default function PersonalizedDashboardWidgets({ initialProfile }: Props) 
 
       </div>
 
+      {/* Gamification & Achievements Spotlight */}
+      <div className="bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-950 rounded-3xl p-5 sm:p-6 text-white shadow-lg border border-indigo-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-2xl shrink-0">
+            🏆
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-300">
+                Gamification & Milestones
+              </span>
+              <span className="text-[11px] text-indigo-200">• Level: {profile.level}</span>
+            </div>
+            <h3 className="text-base font-extrabold text-white mt-0.5">
+              ⭐ {profile.completedLessonsCount * 50 + profile.learnedVocabCount * 20 + profile.speakingAttemptsCount * 30 + 240} Total XP
+            </h3>
+            <p className="text-xs text-indigo-200">
+              Recent Achievement: <strong className="text-white">
+                {profile.completedLessonsCount >= 5
+                  ? "Lesson Explorer (5 lessons completed)"
+                  : profile.completedLessonsCount >= 1
+                  ? "First Step (1st lesson completed)"
+                  : profile.streakDays >= 3
+                  ? "3-Day Streak (Consecutive study)"
+                  : "First Lesson In Progress"}
+              </strong>
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/achievements"
+          className="px-4 py-2.5 rounded-xl bg-white text-indigo-950 font-bold text-xs hover:bg-indigo-50 transition shadow-sm shrink-0 inline-flex items-center gap-1.5"
+        >
+          View All Badges →
+        </Link>
+      </div>
+
       {/* PHASE 8 SPOTLIGHT: "RECOMMENDED FOR YOU TODAY" COMMAND CENTER */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-indigo-200/90 shadow-md dark:bg-zinc-900 dark:border-indigo-900/60 space-y-6">
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
               ✨
@@ -207,10 +245,66 @@ export default function PersonalizedDashboardWidgets({ initialProfile }: Props) 
               </p>
             </div>
           </div>
-          <span className="px-3 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 text-xs font-bold rounded-full self-start sm:self-auto">
-            AI Curriculum Active
-          </span>
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            <Link
+              href="/study-plan"
+              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1"
+            >
+              <span>📅</span>
+              <span>Study Plan</span>
+              <span>➔</span>
+            </Link>
+            <Link
+              href="/recommendations"
+              className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-700 dark:text-zinc-300 text-xs font-bold rounded-xl transition"
+            >
+              All Recommendations ➔
+            </Link>
+          </div>
         </div>
+
+        {/* Phase 16 Smart Highlight Card */}
+        {profile.dueVocabReviewsCount > 0 ? (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-amber-500/10 border border-purple-500/20 dark:border-purple-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🔥</span>
+              <div>
+                <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
+                  Review {profile.dueVocabReviewsCount} vocabulary word{profile.dueVocabReviewsCount > 1 ? "s" : ""}
+                </h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  You have {profile.dueVocabReviewsCount} word{profile.dueVocabReviewsCount > 1 ? "s" : ""} due for Spaced Repetition review today.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowReviewModal(true)}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition shadow-xs shrink-0 self-stretch sm:self-auto"
+            >
+              Review Now ({profile.dueVocabReviewsCount}) ➔
+            </button>
+          </div>
+        ) : primaryWeakness ? (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-500/20 dark:border-amber-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
+                  Practice Focus: {primaryWeakness.title}
+                </h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {primaryWeakness.advice}
+                </p>
+              </div>
+            </div>
+            <Link
+              href={primaryWeakness.actionHref}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-xs shrink-0 self-stretch sm:self-auto text-center"
+            >
+              Practice Now ➔
+            </Link>
+          </div>
+        ) : null}
 
         {/* Recommendation Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

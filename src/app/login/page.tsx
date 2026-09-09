@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { loginAction } from "./actions";
+import ThemeSwitcher from "../components/ThemeSwitcher";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -156,16 +157,8 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Theme Toggle (Dark Mode Moon Icon) */}
-          <button
-            type="button"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#121630]/80 hover:bg-[#191f42] border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition backdrop-blur-md cursor-pointer"
-            aria-label="Toggle dark mode"
-          >
-            <svg className="w-4 h-4 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          </button>
+          {/* Global Theme Toggle */}
+          <ThemeSwitcher className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#121630]/80 hover:bg-[#191f42] border-white/10 text-zinc-300 hover:text-white backdrop-blur-md" />
         </div>
       </header>
 

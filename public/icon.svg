@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(99, 102, 241, 0.25)" stroke-width="6" />
+
+  <!-- Outer ambient glow circle -->
+  <circle cx="256" cy="256" r="170" fill="none" stroke="url(#primaryGrad)" stroke-width="4" stroke-opacity="0.3" filter="url(#glow)" />
+
+  <!-- Center Hex/Speech Shield -->
+  <g transform="translate(0, -10)">
+    <!-- Speech Bubble Body -->
+    <path d="M 156 160 C 156 120, 356 120, 356 160 L 356 280 C 356 320, 276 320, 256 350 C 236 320, 156 320, 156 280 Z" fill="url(#primaryGrad)" />
+    
+    <!-- Robot Antenna / Headpiece -->
+    <circle cx="256" cy="116" r="14" fill="#38bdf8" filter="url(#glow)" />
+    <line x1="256" y1="130" x2="256" y2="145" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" />
+
+    <!-- AI Visor / Eyes -->
+    <rect x="196" y="196" width="120" height="42" rx="21" fill="#090d16" />
+    <ellipse cx="228" cy="217" rx="12" ry="9" fill="#38bdf8" filter="url(#glow)" />
+    <ellipse cx="284" cy="217" rx="12" ry="9" fill="#38bdf8" filter="url(#glow)" />
+    
+    <!-- Sound Waves / Audio Arc -->
+    <path d="M 130 200 A 70 70 0 0 0 130 256" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" opacity="0.8" />
+    <path d="M 112 186 A 94 94 0 0 0 112 270" fill="none" stroke="#818cf8" stroke-width="5" stroke-linecap="round" opacity="0.5" />
+    <path d="M 382 200 A 70 70 0 0 1 382 256" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" opacity="0.8" />
+    <path d="M 400 186 A 94 94 0 0 1 400 270" fill="none" stroke="#818cf8" stroke-width="5" stroke-linecap="round" opacity="0.5" />
+
+    <!-- Smile line -->
+    <path d="M 232 264 Q 256 278 280 264" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.9" />
+  </g>
+
+  <!-- LingoAI text banner -->
+  <text x="256" y="420" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle" letter-spacing="2">
+    LINGO<tspan fill="#38bdf8">AI</tspan>
+  </text>
+</svg>

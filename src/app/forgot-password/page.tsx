@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { requestPasswordResetAction } from "./actions";
+import ThemeSwitcher from "../components/ThemeSwitcher";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -45,6 +46,10 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 dark:bg-zinc-950 relative overflow-hidden">
+      {/* Global Theme Toggle */}
+      <div className="absolute top-6 right-6 z-20">
+        <ThemeSwitcher />
+      </div>
       {/* BACKGROUND VECTOR DECORATIONS */}
       <div
         className="absolute top-[10%] right-[10%] md:right-[15%] hidden sm:flex flex-col items-center select-none animate-bounce"

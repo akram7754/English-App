@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import type { AdminTab } from "./AdminSidebar";
+import ThemeSwitcher from "../../components/ThemeSwitcher";
 
 interface AdminTopBarProps {
   onToggleSidebar: () => void;
@@ -73,8 +74,9 @@ export default function AdminTopBar({
         </div>
       </div>
 
-      {/* Right: Notification Bell + Admin Profile Chip */}
-      <div className="flex items-center gap-4">
+      {/* Right: Theme Switcher + Notification Bell + Admin Profile Chip */}
+      <div className="flex items-center gap-3">
+        <ThemeSwitcher className="bg-[#11162B] text-slate-300 hover:text-white border-[#1E2540] hover:border-purple-500/40" />
         {/* Notification Bell */}
         <button
           onClick={() => setActiveTab("notifications")}

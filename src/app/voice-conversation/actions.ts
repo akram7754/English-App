@@ -50,8 +50,10 @@ export async function processVoiceConversationTurnAction(
       }
     }
 
+    const cleanTranscript = (payload.userTranscript || "").slice(0, 2000);
     const enrichedPayload: VoiceTurnPayload = {
       ...payload,
+      userTranscript: cleanTranscript,
       weaknesses,
     };
 
@@ -70,6 +72,7 @@ export async function processVoiceConversationTurnAction(
       result = {
         aiReply: parsed.aiReply || "",
         targetPhrase: parsed.targetPhrase || "Let's continue our conversation.",
+        pronunciation: parsed.pronunciation || "",
         nativeExplanation: parsed.nativeExplanation || "",
         spokenText:
           parsed.spokenText ||
@@ -210,7 +213,10 @@ export async function saveVoiceSessionSummaryAction(
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Failed to save session summary.";
     console.error("Failed to save session summary:", errorMsg);
-    return { success: false, error: errorMsg };
+    return {
+      success: false,
+      error: process.env.NODE_ENV === "production" ? "Failed to save session summary." : errorMsg,
+    };
   }
 }
 

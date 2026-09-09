@@ -18,6 +18,8 @@ import {
   TutorPersonality,
   VoiceEvaluationMetrics,
 } from "../../lib/voice-prompts";
+import MultilingualMessageContent from "../components/MultilingualMessageContent";
+import { initTTS, resolveTTSLocale, speakMultilingualText, stopTTS } from "../../lib/tts";
 
 interface UserProfile {
   id: number;
@@ -35,6 +37,7 @@ interface ChatMessage {
   id: string;
   sender: "ai" | "user";
   text: string;
+  pronunciation?: string;
   nativeExplanation?: string;
   isVoice?: boolean;
   time: string;
@@ -55,13 +58,16 @@ interface Props {
 interface ISpeechRecognitionInstance {
   abort: () => void;
   start: () => void;
+  stop?: () => void;
   lang: string;
   continuous: boolean;
   interimResults: boolean;
   maxAlternatives: number;
   onstart: () => void;
-  onresult: (e: { results: Array<Array<{ transcript: string }>> }) => void;
-  onerror: (e: { error: string }) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onresult: (e: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onerror: (e: any) => void;
   onend: () => void;
 }
 
@@ -94,6 +100,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
   const [manualInputOpen, setManualInputOpen] = useState<boolean>(false);
   const [manualText, setManualText] = useState<string>("");
   const [micError, setMicError] = useState<string>("");
+  const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [lastAiSpokenText, setLastAiSpokenText] = useState<string>("Tell me about yourself.");
 
   // Messages seeded with initial dialogue matching the exact design
@@ -168,6 +175,16 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const idCounterRef = useRef<number>(100);
 
+  // Synchronization refs to prevent stale closure freezes & race conditions
+  const flowStateRef = useRef(flowState);
+  const isListeningRef = useRef(false);
+  const isSubmittingRef = useRef(false);
+  const accumulatedTranscriptRef = useRef("");
+
+  useEffect(() => {
+    flowStateRef.current = flowState;
+  }, [flowState]);
+
   const targetLang: LanguageConfig = useMemo(
     () => getLanguageByCode(targetLangCode),
     [targetLangCode]
@@ -184,46 +201,52 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
 
   // Initialize Speech Synthesis
   useEffect(() => {
+    initTTS();
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       synthRef.current = window.speechSynthesis;
     }
   }, []);
 
   // Text-To-Speech Playback function
-  const speakText = (text: string, langCode: string = targetLang.ttsLang) => {
-    if (!synthRef.current || !text) return;
-    try {
-      synthRef.current.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = langCode;
-      utterance.rate = speechRate;
-      utterance.pitch = 1.0;
-
-      utterance.onstart = () => {
+  const speakText = (text: string, langCode?: string) => {
+    if (!text) return;
+    const resolved = resolveTTSLocale(text, targetLangCode, langCode);
+    speakMultilingualText(text, resolved, {
+      rate: speechRate,
+      onStart: () => {
         setFlowState("SPEAKING");
-      };
-      utterance.onend = () => {
+      },
+      onEnd: () => {
         setFlowState("IDLE");
-      };
-      utterance.onerror = () => {
+      },
+      onError: (msg) => {
         setFlowState("IDLE");
-      };
-
-      synthRef.current.speak(utterance);
-    } catch (err) {
-      console.warn("TTS error:", err);
-      setFlowState("IDLE");
-    }
+        setMicError(msg);
+        setTimeout(() => setMicError(""), 4000);
+      },
+    });
   };
 
   const stopAudioAndMic = () => {
+    stopTTS();
     if (synthRef.current) {
-      synthRef.current.cancel();
+      try {
+        synthRef.current.cancel();
+      } catch {
+        // ignore
+      }
     }
     if (recognitionRef.current) {
-      recognitionRef.current.abort();
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        // ignore
+      }
     }
-    setFlowState("IDLE");
+    isListeningRef.current = false;
+    if (!isSubmittingRef.current) {
+      setFlowState("IDLE");
+    }
   };
 
   // Switch language pair & re-trigger turn in the new language
@@ -260,6 +283,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
           id: `ai-${++idCounterRef.current}`,
           sender: "ai",
           text: res.result.spokenText || res.result.targetPhrase,
+          pronunciation: res.result.pronunciation,
           nativeExplanation: res.result.nativeExplanation,
           time: timeStr,
         };
@@ -398,18 +422,21 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
 
   // Process User Spoken Answer
   const handleUserAnswer = async (userTranscript: string, isFromVoice: boolean = true) => {
-    if (!userTranscript.trim()) return;
+    const cleanText = userTranscript.trim();
+    if (!cleanText) return;
 
+    isSubmittingRef.current = true;
     stopAudioAndMic();
     setFlowState("EVALUATING");
     setMicError("");
+    setLiveTranscript("");
 
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     const userMsg: ChatMessage = {
       id: `user-${++idCounterRef.current}`,
       sender: "user",
-      text: userTranscript,
+      text: cleanText,
       isVoice: isFromVoice,
       time: timeStr,
     };
@@ -420,11 +447,12 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
       {
         id: `tr-${++idCounterRef.current}`,
         speaker: isFromVoice ? `You (${targetLang.name})` : `You (${targetLang.name} Text)`,
-        text: userTranscript,
+        text: cleanText,
       },
     ]);
 
     try {
+      console.log(`[Voice] Sending transcript to server (Transcript length: ${cleanText.length})`);
       const historyContext = messages.slice(-10).map((m) => ({
         role: m.sender === "user" ? ("user" as const) : ("model" as const),
         text: m.text,
@@ -439,10 +467,12 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
         personality,
         sourceLanguage: sourceLang.name,
         targetLanguage: targetLang.name,
-        userTranscript,
+        userTranscript: cleanText,
         weaknesses: userProfile.weaknesses,
         conversationHistory: historyContext,
       });
+
+      console.log("[Voice] AI response received: success =", res.success);
 
       if (res.success && res.result) {
         if (res.result.evaluation) {
@@ -461,6 +491,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
           id: `ai-${++idCounterRef.current}`,
           sender: "ai",
           text: toSpeak,
+          pronunciation: res.result.pronunciation,
           nativeExplanation: res.result.nativeExplanation,
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           evaluation: res.result.evaluation,
@@ -498,31 +529,76 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
         }
 
         if (autoSpeak) {
-          speakText(toSpeak, targetLang.ttsLang);
+          try {
+            speakText(toSpeak, targetLang.ttsLang);
+          } catch (ttsErr) {
+            console.warn("[Voice] TTS playback failed, preserving text reply:", ttsErr);
+            setFlowState("IDLE");
+          }
         } else {
           setFlowState("IDLE");
         }
       } else {
+        console.warn("[Voice] Voice turn action returned error:", res.error);
+        setMicError(res.error || "Unable to generate AI response. Please try again.");
         setFlowState("IDLE");
       }
     } catch (err) {
-      console.error("User answer evaluation error:", err);
+      console.error("[Voice] User answer evaluation error:", err);
+      setMicError("Connection error while communicating with AI tutor. Please try again.");
       setFlowState("IDLE");
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
   // Microphone Recording Handler
-  const startRecording = () => {
+  const startRecording = async () => {
+    // 1. If currently listening, clicking the mic finishes speaking and submits
+    if (flowStateRef.current === "LISTENING" || isListeningRef.current) {
+      console.log("[Voice] Mic tapped while listening -> finish speaking");
+      const currentSpeech = accumulatedTranscriptRef.current.trim();
+      stopAudioAndMic();
+      if (currentSpeech && !isSubmittingRef.current) {
+        handleUserAnswer(currentSpeech, true);
+      } else {
+        setFlowState("IDLE");
+        setLiveTranscript("");
+      }
+      return;
+    }
+
     setMicError("");
+    setLiveTranscript("");
+    accumulatedTranscriptRef.current = "";
+    isSubmittingRef.current = false;
+
     interface WindowWithSpeech {
       SpeechRecognition?: new () => ISpeechRecognitionInstance;
       webkitSpeechRecognition?: new () => ISpeechRecognitionInstance;
     }
-    const win = window as unknown as WindowWithSpeech;
+    const win = typeof window !== "undefined" ? (window as unknown as WindowWithSpeech) : {};
     const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setMicError("Browser speech recognition is not supported. Use 'Type instead'.");
+      setMicError("Browser speech recognition is not supported on this device. Use 'Type instead'.");
+      setManualInputOpen(true);
+      return;
+    }
+
+    // Check whether origin is a secure context (HTTPS or localhost)
+    const isLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "[::1]");
+    const isSecure = typeof window !== "undefined" && (window.isSecureContext || isLocalhost);
+
+    if (!isSecure && (!navigator?.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
+      setMicError(
+        "Microphone blocked: Browsers require HTTPS or localhost. On local HTTP (192.168.x.x), please use 'Type instead' below."
+      );
+      setManualInputOpen(true);
       return;
     }
 
@@ -533,44 +609,110 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
 
       recognition.lang = targetLang.sttLang || "en-US";
       recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
+        console.log("[Voice] Speech recognition started");
+        isListeningRef.current = true;
         setFlowState("LISTENING");
+        setMicError("");
       };
 
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript) {
-          handleUserAnswer(transcript, true);
-        } else {
-          setFlowState("IDLE");
+        let interim = "";
+        let final = "";
+        const results = event.results;
+        for (let i = 0; i < results.length; i++) {
+          const res = results[i];
+          if (res.isFinal) {
+            final += (res[0]?.transcript || "") + " ";
+          } else {
+            interim += (res[0]?.transcript || "") + " ";
+          }
+        }
+
+        const fullText = (final.trim() || interim.trim());
+        if (fullText) {
+          accumulatedTranscriptRef.current = fullText;
+          setLiveTranscript(fullText);
+          console.log(`[Voice] Speech result received: "${fullText.slice(0, 35)}" (Transcript length: ${fullText.length})`);
+        }
+
+        // If a final result was recognized, submit immediately
+        if (final.trim() && !isSubmittingRef.current) {
+          isSubmittingRef.current = true;
+          const toSubmit = final.trim();
+          console.log(`[Voice] Final speech transcript confirmed: "${toSubmit}", sending to server`);
+          stopAudioAndMic();
+          handleUserAnswer(toSubmit, true);
         }
       };
 
       recognition.onerror = (event) => {
-        console.warn("Speech recognition error:", event.error);
+        console.warn("[Voice] Speech recognition error:", event.error);
+        isListeningRef.current = false;
+
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          setMicError("Microphone permission denied. Please allow microphone access.");
+          if (!isSecure) {
+            setMicError(
+              "Microphone blocked: Browsers require HTTPS or localhost. On local HTTP (192.168.x.x), please use 'Type instead' below."
+            );
+            setManualInputOpen(true);
+          } else {
+            setMicError(
+              "Microphone permission denied. Please allow microphone access in your browser settings."
+            );
+          }
         } else if (event.error === "no-speech") {
-          setMicError("No speech detected. Tap microphone and speak clearly.");
-        } else {
+          if (!accumulatedTranscriptRef.current.trim()) {
+            setMicError("I couldn't hear that. Please try again.");
+          }
+        } else if (event.error !== "aborted") {
           setMicError("Speech recognition error. Tap again or type instead.");
         }
-        setFlowState("IDLE");
-      };
 
-      recognition.onend = () => {
-        if (flowState === "LISTENING") {
+        if (!isSubmittingRef.current) {
           setFlowState("IDLE");
         }
       };
 
+      recognition.onend = () => {
+        console.log("[Voice] Speech recognition ended");
+        isListeningRef.current = false;
+
+        // If turn evaluation is already in flight, do not overwrite flowState
+        if (isSubmittingRef.current) {
+          return;
+        }
+
+        // Check if any transcript was captured before onend
+        const pending = accumulatedTranscriptRef.current.trim();
+        if (pending) {
+          isSubmittingRef.current = true;
+          console.log(`[Voice] Submitting transcript accumulated prior to onend: "${pending}"`);
+          handleUserAnswer(pending, true);
+          return;
+        }
+
+        // Clean reset if no speech was received
+        setFlowState("IDLE");
+        setLiveTranscript("");
+        setMicError("I couldn't hear that. Please try again.");
+      };
+
       recognition.start();
     } catch (err: unknown) {
-      console.error("Microphone start exception:", err);
-      setMicError("Unable to access microphone. Check permissions.");
+      console.error("[Voice] Microphone start exception:", err);
+      isListeningRef.current = false;
+      if (!isSecure) {
+        setMicError(
+          "Microphone blocked: Browsers require HTTPS or localhost. On local HTTP (192.168.x.x), please use 'Type instead' below."
+        );
+        setManualInputOpen(true);
+      } else {
+        setMicError("Unable to access microphone. Check permissions or use 'Type instead'.");
+      }
       setFlowState("IDLE");
     }
   };
@@ -578,7 +720,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
   const progressPercentage = Math.min(100, Math.round((questionNumber / totalQuestions) * 100));
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#07060f] text-zinc-100 font-sans select-none relative">
+    <div className="flex-1 flex flex-col min-w-0 min-h-full lg:h-full overflow-visible lg:overflow-hidden bg-[#07060f] text-zinc-100 font-sans select-none relative">
 
         {/* 2. TOP HEADER (Title, Phase 9 Badge, Progress, Auto-Speak, Speed) */}
         <header className="px-6 py-3.5 border-b border-[#18162e] bg-[#090817] flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
@@ -746,9 +888,9 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
         {/* ======================================================
             BODY AREA (3-COLUMN: Avatar Card | Chat Stream | Right Panel)
            ====================================================== */}
-        <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden p-4 gap-4">
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0 h-auto lg:h-full overflow-visible lg:overflow-hidden p-3 sm:p-4 gap-4">
           {/* COLUMN 1 & 2 (Left & Center Main View) */}
-          <div className="flex-1 flex flex-col min-w-0 h-full gap-3 overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-0 h-auto lg:h-full gap-3 overflow-visible lg:overflow-hidden order-2 lg:order-1">
             {/* Upper Section: Avatar Card (Left) + Chat Stream (Center) */}
             <div className="flex-1 flex flex-col md:flex-row min-h-0 gap-3">
               {/* 5 & 6. AI AVATAR CARD */}
@@ -786,9 +928,9 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
               </div>
 
               {/* 8. CONVERSATION CHAT UI & ACTION BUTTONS */}
-              <div className="flex-1 flex flex-col min-w-0 bg-[#0a091a] border border-[#1b1936] rounded-3xl p-4 overflow-hidden shadow-lg justify-between">
+              <div className="flex-1 flex flex-col min-w-0 bg-[#0a091a] border border-[#1b1936] rounded-3xl p-4 overflow-hidden shadow-lg justify-between min-h-[320px] lg:min-h-0">
                 {/* Scrollable chat message stream */}
-                <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0">
+                <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[180px] lg:min-h-0 max-h-[400px] lg:max-h-none">
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
@@ -816,22 +958,35 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
                       </div>
 
                       {/* Message Content */}
-                      <div className="space-y-1">
-                        <p className="text-xs md:text-sm font-semibold text-white leading-relaxed">
-                          {msg.text}
-                        </p>
-                        {msg.nativeExplanation && (
-                          <p className="text-xs text-zinc-400 font-sans">
-                            {msg.nativeExplanation}
+                      {msg.sender === "ai" ? (
+                        <MultilingualMessageContent
+                          text={msg.text}
+                          pronunciation={msg.pronunciation}
+                          nativeExplanation={msg.nativeExplanation}
+                          targetLangCode={targetLangCode}
+                          sourceLangCode={sourceLangCode}
+                          ttsLocale={targetLang.ttsLang}
+                          onSpeak={() => setFlowState("SPEAKING")}
+                          variant="dark"
+                        />
+                      ) : (
+                        <div className="space-y-1">
+                          <p className="text-xs md:text-sm font-semibold text-white leading-relaxed">
+                            {msg.text}
                           </p>
-                        )}
-                      </div>
+                          {msg.nativeExplanation && (
+                            <p className="text-xs text-zinc-400 font-sans">
+                              {msg.nativeExplanation}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Bottom Audio / Voice Badge */}
                       <div className={`flex items-center mt-2 ${
                         msg.sender === "user" ? "justify-start" : "justify-end"
                       }`}>
-                        {msg.sender === "ai" ? (
+                        {msg.sender === "ai" && !msg.pronunciation && targetLangCode !== "ar" ? (
                           <button
                             onClick={() => speakText(msg.text, targetLang.ttsLang)}
                             className="text-zinc-400 hover:text-white transition cursor-pointer p-1"
@@ -911,28 +1066,45 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
               {/* Left: Waveform & Status */}
               <div className="flex-1 min-w-[180px]">
                 <div className="text-xs font-bold text-[#10b981] flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping"></span>
-                  <span>{flowState === "LISTENING" ? "Listening..." : "Listening..."}</span>
+                  <span className={`w-2 h-2 rounded-full ${flowState === "LISTENING" ? "bg-[#10b981] animate-ping" : flowState === "EVALUATING" ? "bg-amber-400 animate-pulse" : "bg-emerald-500"}`}></span>
+                  <span>
+                    {flowState === "LISTENING"
+                      ? "Listening..."
+                      : flowState === "EVALUATING"
+                      ? "Analyzing Speech..."
+                      : flowState === "THINKING"
+                      ? "AI Thinking..."
+                      : "Microphone Ready"}
+                  </span>
                 </div>
                 {/* Animated sound wave bars */}
                 <div className="flex items-center gap-1 my-1.5 text-[#10b981] h-6 overflow-hidden">
                   <span className="w-1 bg-[#10b981] h-2 rounded-full"></span>
-                  <span className="w-1 bg-[#10b981] h-3 rounded-full animate-pulse"></span>
-                  <span className="w-1 bg-[#10b981] h-5 rounded-full animate-bounce"></span>
+                  <span className={`w-1 bg-[#10b981] h-3 rounded-full ${flowState === "LISTENING" ? "animate-pulse" : ""}`}></span>
+                  <span className={`w-1 bg-[#10b981] h-5 rounded-full ${flowState === "LISTENING" ? "animate-bounce" : ""}`}></span>
                   <span className="w-1 bg-[#10b981] h-4 rounded-full"></span>
-                  <span className="w-1 bg-[#10b981] h-6 rounded-full animate-pulse"></span>
+                  <span className={`w-1 bg-[#10b981] h-6 rounded-full ${flowState === "LISTENING" ? "animate-pulse" : ""}`}></span>
                   <span className="w-1 bg-[#10b981] h-3 rounded-full"></span>
-                  <span className="w-1 bg-[#10b981] h-5 rounded-full animate-bounce"></span>
+                  <span className={`w-1 bg-[#10b981] h-5 rounded-full ${flowState === "LISTENING" ? "animate-bounce" : ""}`}></span>
                   <span className="w-1 bg-[#10b981] h-2 rounded-full"></span>
                   <span className="w-1 bg-[#10b981] h-4 rounded-full"></span>
                 </div>
-                <p className="text-[11px] text-zinc-500">Speak now...</p>
-                {micError && <p className="text-[10px] text-red-400 mt-1">{micError}</p>}
+                <p className="text-[11px] text-zinc-400 truncate max-w-[280px]">
+                  {flowState === "LISTENING"
+                    ? liveTranscript
+                      ? `"${liveTranscript}"`
+                      : "Speak clearly now..."
+                    : flowState === "EVALUATING"
+                    ? "Evaluating pronunciation & grammar..."
+                    : "Tap mic to speak"}
+                </p>
+                {micError && <p id="mic-error-message" className="text-[10px] text-red-400 mt-1 leading-snug break-words">{micError}</p>}
               </div>
 
               {/* Center: Giant Microphone Button */}
               <div className="flex flex-col items-center">
                 <button
+                  type="button"
                   onClick={startRecording}
                   disabled={flowState === "THINKING" || flowState === "EVALUATING" || flowState === "PROCESSING"}
                   className={`w-16 h-16 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 cursor-pointer ${
@@ -940,13 +1112,20 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
                       ? "bg-gradient-to-tr from-pink-600 to-red-600 shadow-red-500/50 scale-110 animate-pulse border-2 border-white"
                       : "bg-gradient-to-tr from-[#312588] to-[#4f46e5] hover:scale-105 border border-[#5244be] shadow-indigo-600/30"
                   }`}
-                  title="Tap to speak"
+                  title={flowState === "LISTENING" ? "Tap to finish speaking & submit" : "Tap to speak"}
+                  aria-label={flowState === "LISTENING" ? "Finish speaking" : "Start speaking"}
                 >
                   <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
                   </svg>
                 </button>
-                <span className="text-xs font-semibold text-zinc-300 mt-1.5">Tap to speak</span>
+                <span className="text-xs font-semibold text-zinc-300 mt-1.5">
+                  {flowState === "LISTENING"
+                    ? "Listening (tap when done)"
+                    : flowState === "EVALUATING"
+                    ? "Analyzing..."
+                    : "Tap to speak"}
+                </span>
               </div>
 
               {/* Right: Type Instead / Stop */}
@@ -1024,9 +1203,9 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
           {/* ====================================================
               COLUMN 3: RIGHT SIDEBAR (Score + Feedback + Transcript)
              ==================================================== */}
-          <div className="w-full lg:w-72 flex flex-col gap-3 shrink-0">
+          <div className="w-full lg:w-72 flex flex-col gap-3 shrink-0 order-1 lg:order-2">
             {/* 1. AI SPEAKING SCORE CARD */}
-            <div className="bg-[#0a091a] border border-[#1b1936] rounded-3xl p-4 shadow-lg space-y-3">
+            <div className="bg-[#0a091a] border border-[#1b1936] rounded-3xl p-4 shadow-lg space-y-3 shrink-0">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-white">AI Speaking Score</span>
                 <button className="text-[11px] font-semibold text-[#818cf8] hover:underline cursor-pointer">
@@ -1124,7 +1303,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
             </div>
 
             {/* 2. FEEDBACK CARD */}
-            <div className="bg-[#0a091a] border border-[#1b1936] rounded-3xl p-4 shadow-lg space-y-3">
+            <div className="bg-[#0a091a] border border-[#1b1936] rounded-3xl p-4 shadow-lg space-y-3 shrink-0">
               <span className="text-xs font-bold text-white block">Feedback</span>
 
               <div className="space-y-2.5 text-xs">
@@ -1171,7 +1350,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
             </div>
 
             {/* 3. LIVE TRANSCRIPT CARD */}
-            <div className="flex-1 bg-[#0a091a] border border-[#1b1936] rounded-3xl p-4 shadow-lg flex flex-col min-h-0">
+            <div className="bg-[#0a091a] border border-[#1b1936] rounded-3xl p-4 shadow-lg flex flex-col lg:flex-1 min-h-0 shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-white">Live Transcript</span>
                 <button
@@ -1182,7 +1361,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[120px] text-xs">
+              <div className="overflow-y-auto space-y-2 pr-1 min-h-[100px] max-h-[220px] lg:max-h-none lg:flex-1 text-xs">
                 {transcripts.map((t) => (
                   <div key={t.id} className="space-y-0.5">
                     <p className="text-[10px] font-bold text-[#10b981]">{t.speaker}</p>

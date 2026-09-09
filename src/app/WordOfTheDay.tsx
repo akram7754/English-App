@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { learnVocabularyAction } from "./lessons/actions";
+import { initTTS, resolveTTSLocale, speakMultilingualText } from "../lib/tts";
 
 interface WordOfTheDayProps {
   word: string;
@@ -21,6 +22,10 @@ export default function WordOfTheDay({
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    initTTS();
+  }, []);
+
   const handleSave = async () => {
     if (saved || loading) return;
     setLoading(true);
@@ -34,13 +39,10 @@ export default function WordOfTheDay({
   };
 
   const handlePronounce = () => {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(word);
-      utterance.lang = "en-US";
-      window.speechSynthesis.speak(utterance);
-    } else {
-      alert("Text-to-speech not supported in this browser.");
-    }
+    const resolved = resolveTTSLocale(word, "en");
+    speakMultilingualText(word, resolved, {
+      onError: (msg) => alert(msg),
+    });
   };
 
   return (

@@ -255,7 +255,7 @@ export default function UserProfileDropdown({
           <div className="space-y-1">
             {/* 1. My Profile */}
             <Link
-              href="/dashboard"
+              href="/profile"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-zinc-200 hover:text-white hover:bg-indigo-600/20 hover:border-indigo-500/30 border border-transparent transition-all group"
             >

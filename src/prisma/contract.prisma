@@ -16,6 +16,8 @@ model User {
   lessonProgress UserLessonProgress[]
   vocabProgress  UserVocabularyProgress[]
   passwordResetTokens PasswordResetToken[]
+  notifications  Notification[]
+  achievements   UserAchievement[]
   createdAt      TimestamptzString        @default(now())
   updatedAt      temporal.updatedAtString()
 }
@@ -115,4 +117,27 @@ model PasswordResetToken {
   used      Boolean           @default(false)
   createdAt TimestamptzString @default(now())
   user      User              @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  type      String
+  title     String
+  message   String
+  read      Boolean           @default(false)
+  actionUrl String?
+  readAt    TimestamptzString?
+  createdAt TimestamptzString @default(now())
+  user      User              @relation(fields: [userId], references: [id])
+}
+
+model UserAchievement {
+  id             Int               @id @default(autoincrement())
+  userId         Int
+  achievementKey String
+  unlockedAt     TimestamptzString @default(now())
+  user           User              @relation(fields: [userId], references: [id])
+
+  @@unique([userId, achievementKey])
 }

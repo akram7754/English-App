@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { verifyResetTokenAction, resetPasswordAction } from "./actions";
+import ThemeSwitcher from "../components/ThemeSwitcher";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -292,6 +293,10 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 dark:bg-zinc-950 relative overflow-hidden">
+      {/* Global Theme Toggle */}
+      <div className="absolute top-6 right-6 z-20">
+        <ThemeSwitcher />
+      </div>
       {/* BACKGROUND VECTOR DECORATIONS */}
       <div
         className="absolute top-[10%] right-[10%] md:right-[15%] hidden sm:flex flex-col items-center select-none animate-bounce"

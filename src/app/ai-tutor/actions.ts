@@ -6,6 +6,10 @@ import { cookies } from "next/headers";
 import { verifySession } from "../../lib/auth";
 
 import { getPersonalizedLearningProfile } from "../../lib/learning-engine";
+import {
+  getAttemptsAction as voiceGetAttemptsAction,
+  analyzeSpeakingAction as voiceAnalyzeSpeakingAction,
+} from "../voice-practice/actions";
 
 async function callGeminiFast(params: {
   contents: any;
@@ -34,11 +38,40 @@ async function callGeminiFast(params: {
   throw new Error("ALL_MODELS_FAILED");
 }
 
-export async function askTutorAction(history: { sender: "user" | "ai"; text: string }[], message: string) {
-  if (!message) return "Please enter a message.";
+export interface AskTutorOptions {
+  sourceLanguage?: string; // e.g. "Hindi", "English"
+  targetLanguage?: string; // e.g. "English", "Arabic", "French", "Spanish", "German"
+  sourceLangCode?: string; // e.g. "hi"
+  targetLangCode?: string; // e.g. "en", "ar", "fr", "es", "de"
+  mode?: "conversation" | "grammar" | "vocabulary" | "translation" | "practice";
+  difficulty?: "Beginner" | "Intermediate" | "Advanced";
+}
 
-  const cookieStore = await cookies();
-  const userCookie = cookieStore.get("user")?.value;
+export async function askTutorAction(
+  history: { sender: "user" | "ai"; text: string }[],
+  message: string,
+  options?: AskTutorOptions
+) {
+  const cleanMessage = (message || "").trim().slice(0, 2000);
+  if (!cleanMessage) return "Please enter a message.";
+  history = (history || []).slice(-6).map((h) => ({
+    sender: h.sender,
+    text: (h.text || "").slice(0, 1000),
+  }));
+  message = cleanMessage;
+
+  const sourceLang = options?.sourceLanguage || "Hindi";
+  const targetLang = options?.targetLanguage || "English";
+  const mode = options?.mode || "conversation";
+  const difficulty = options?.difficulty || "Intermediate";
+
+  let userCookie: string | undefined;
+  try {
+    const cookieStore = await cookies();
+    userCookie = cookieStore.get("user")?.value;
+  } catch {
+    // standalone test runner fallback
+  }
   const sessionUser = userCookie ? verifySession(userCookie) : null;
 
   let personalizedContext = "";
@@ -50,27 +83,74 @@ export async function askTutorAction(history: { sender: "user" | "ai"; text: str
         personalizedContext =
           `\n[STUDENT LEARNING PROFILE]\n` +
           `• Student Name: ${profile.userName}\n` +
-          `• Proficiency Level: ${profile.level}\n` +
-          `• Native Language: ${profile.nativeLanguage} | Target Language: ${profile.targetLanguage}\n` +
+          `• Proficiency Level: ${difficulty} (User Profile: ${profile.level})\n` +
           `• Identified Weak Grammar/Fluency Areas: ${weakList || "None recorded"}\n` +
-          `• Next Recommended Lesson: ${profile.nextRecommendedLesson?.title || "Conversational English"}\n` +
-          `INSTRUCTION: Adapt your vocabulary complexity to ${profile.level} level. Naturally weave in practice opportunities for the student's weak areas (${weakList || "General Fluency"}) without lecturing unless they make a mistake.`;
+          `• Next Recommended Topic: ${profile.nextRecommendedLesson?.title || "Language Mastery"}\n` +
+          `INSTRUCTION: Adapt your vocabulary complexity to ${difficulty} level. Naturally weave in practice opportunities for the student's weak areas (${weakList || "General Fluency"}) without lecturing unless they make a mistake.`;
       }
     } catch (e) {
       console.warn("Could not retrieve personalized profile for AI tutor context:", e);
     }
   }
 
-  const systemInstruction = 
-    `You are a friendly, encouraging, and highly adaptive AI English Tutor.\n` +
-    `Your goals are:\n` +
-    `1. Help the user improve their English spelling, grammar, and pronunciation.\n` +
-    `2. Analyze the user's message for grammar mistakes. If any errors are found, highlight them clearly under a "💡 **Grammar Corrections:**" section showing the incorrect text, explanation, and the corrected version.\n` +
-    `3. Keep your conversational response natural, clear, and vocabulary-appropriate.\n` +
-    `4. Suggest one follow-up question or conversational prompt at the very end of your message to keep the dialogue flowing.\n` +
+  const modeInstructions: Record<string, string> = {
+    conversation:
+      `MODE: Natural Conversational Practice.\n` +
+      `Engage in a warm, interactive conversation primarily in ${targetLang} at a ${difficulty} level. ` +
+      `Respond naturally to the student's ideas. If any mistakes are made, provide gentle corrections under '💡 **Grammar Corrections:**' and continue the dialogue with an engaging follow-up question.`,
+    grammar:
+      `MODE: Grammar Coach & Explanations.\n` +
+      `Focus on grammar rules, verb tenses, sentence structures, and common pitfalls in ${targetLang}. ` +
+      `Explain the underlying grammatical patterns clearly in the student's native language (${sourceLang}). ` +
+      `Highlight corrections clearly under '💡 **Grammar Corrections:**' showing *Incorrect:*, *Correct:*, and the clear grammar rule reason.`,
+    vocabulary:
+      `MODE: Vocabulary Builder.\n` +
+      `Teach 2 to 4 high-frequency or idiomatic vocabulary words in ${targetLang} related to the topic. ` +
+      `Under '📖 **Key Vocabulary:**', provide the term, phonetic pronunciation, ${sourceLang} definition, and an example sentence. ` +
+      `Ask the student a follow-up challenge to write a sentence using one of the new words.`,
+    translation:
+      `MODE: Translation & Linguistic Bridge.\n` +
+      `Provide accurate, natural translation between ${sourceLang} and ${targetLang}. ` +
+      `Under '🌐 **Translation Breakdown:**', explain the nuances, formal vs informal registers, and idiomatic subtleties. ` +
+      `Offer alternative natural ways to express the same thought.`,
+    practice:
+      `MODE: Interactive Exercises & Micro-Drills.\n` +
+      `Provide interactive practice challenges (e.g. fill-in-the-blank, translate-this-phrase, or sentence reordering) in ${targetLang} at a ${difficulty} level. ` +
+      `Encourage the student, evaluate their attempts accurately, and explain the correct solution in ${sourceLang}.`,
+  };
+
+  const selectedModeInstruction = modeInstructions[mode] || modeInstructions.conversation;
+
+  const isArabicOrNonLatin =
+    targetLang.toLowerCase().includes("ar") ||
+    targetLang.toLowerCase().includes("hi") ||
+    options?.targetLangCode === "ar" ||
+    options?.targetLangCode === "hi";
+
+  const systemInstruction =
+    `You are a warm, highly encouraging, and skilled Multilingual Personal Language Teacher.\n` +
+    `Teaching Parameters:\n` +
+    `• Student's Native Language: ${sourceLang}\n` +
+    `• Target Language Being Taught: ${targetLang}\n` +
+    `• Student Level: ${difficulty}\n` +
+    `• Current Teaching Objective: ${selectedModeInstruction}\n` +
     personalizedContext + `\n\n` +
-    `Example output style:\n` +
-    `"Hi there! Yes, let's practice.\n\n💡 **Grammar Corrections:**\n* *Incorrect:* 'She have'\n* *Correct:* 'She has' (use singular verbs with third-person pronoun 'she').\n\nNow, to continue, tell me about your day!"`;
+    `PEDAGOGICAL RULES:\n` +
+    `1. Teach ${targetLang} effectively using ${sourceLang} for conceptual explanations, meanings, and tips.\n` +
+    `2. Keep the tone friendly, patient, and inspiring—like a dedicated personal 1-on-1 tutor.\n` +
+    `3. Always end your response with an engaging question, practice prompt, or next step for the student to continue the lesson.\n` +
+    (isArabicOrNonLatin
+      ? `4. MULTILINGUAL PRONUNCIATION & SCRIPT DIRECTIVE (STRICT):\n` +
+        `   Whenever presenting phrases or sentences in ${targetLang} (Arabic or non-Latin script), ALWAYS format with these THREE distinct parts:\n` +
+        `   [1] Target-language text in original script\n` +
+        `   [2] Read: <phonetic pronunciation in Roman/Latin letters>\n` +
+        `   [3] ${sourceLang}: <meaning in student's native language>\n\n` +
+        `   Example for Arabic:\n` +
+        `   صباح الخير، كيف حالك اليوم؟\n\n` +
+        `   Read: Sabah al-khair, kaifa haluka al-yawm?\n\n` +
+        `   ${sourceLang}:\n` +
+        `   सुप्रभात, आज आप कैसे हैं?\n`
+      : `4. For Latin languages (${targetLang}): Provide clear ${sourceLang} translations and only include pronunciation tips when phonetically tricky or requested.\n`);
 
   // Build clean history turns without duplicating the message
   const contents: { role: string; parts: { text: string }[] }[] = [];
@@ -95,31 +175,114 @@ export async function askTutorAction(history: { sender: "user" | "ai"; text: str
       contents,
       config: {
         systemInstruction: { parts: [{ text: systemInstruction }] },
-        maxOutputTokens: 350,
+        maxOutputTokens: 450,
       },
-      timeoutMs: 6000,
+      timeoutMs: 7000,
     });
 
     return text || "I'm sorry, I couldn't process that response.";
   } catch (error: any) {
     console.error("Gemini Tutor error:", error);
-    
-    // Provide a smart conversational fallback when Gemini is not configured
+
+    // Provide intelligent offline fallbacks based on target language and mode
     const lower = message.toLowerCase();
+    const isArabic = targetLang.toLowerCase().includes("ar") || options?.targetLangCode === "ar" || /[\u0600-\u06FF]/.test(message);
+    const isFrench = targetLang.toLowerCase().includes("fr") || options?.targetLangCode === "fr";
+    const isSpanish = targetLang.toLowerCase().includes("es") || options?.targetLangCode === "es";
+    const isGerman = targetLang.toLowerCase().includes("de") || options?.targetLangCode === "de";
+
+    // 1. Arabic Target Fallbacks
+    if (isArabic) {
+      if (lower.includes("interview") || lower.includes("job") || lower.includes("عمل")) {
+        return "أهلاً بك! دعنا نبدأ التدريب على المقابلة الشخصية.\n\n" +
+               "Read: Ahlan bika! Da'na nabda' at-tadrīb 'ala al-muqabala ash-shakhsiyya.\n\n" +
+               `${sourceLang}:\n` +
+               "स्वागत है! चलिए नौकरी के साक्षात्कार का अभ्यास शुरू करते हैं। संक्षेप में अपना परिचय दीजिए।";
+      }
+      if (mode === "grammar" || lower.includes("grammar") || lower.includes("قواعد")) {
+        return "💡 **قواعد اللغة العربية (Arabic Grammar Tip):**\n" +
+               "في اللغة العربية، تبدأ الجملة الفعلية عادةً بالفعل ثم الفاعل.\n\n" +
+               "Read: Fi al-lughati al-'arabiyyah, tabda'u al-jumlatu al-fi'liyyah 'aadatan bil-fi'li thumma al-faa'il.\n\n" +
+               `${sourceLang}:\n` +
+               "अरबी में सामान्यतः क्रियात्मक वाक्य पहले क्रिया (Verb) और उसके बाद कर्ता (Subject) से शुरू होता है।\n\n" +
+               "مثال: كَتَبَ الطالبُ الدرسَ (Kataba at-talibu ad-darsa) = छात्र ने पाठ लिखा।";
+      }
+      if (mode === "vocabulary") {
+        return "📖 **مفردات هامة (Key Vocabulary):**\n" +
+               "1. مرحبا (Marhaban) - नमस्ते / Hello\n" +
+               "2. صديق (Sadiq) - मित्र / Friend\n" +
+               "3. شكراً (Shukran) - धन्यवाद / Thank you\n\n" +
+               "حاول كتابة جملة باستخدام كلمة 'صديق'!";
+      }
+      return "صباح الخير، كيف حالك اليوم؟\n\n" +
+             "Read: Sabah al-khair, kaifa haluka al-yawm?\n\n" +
+             `${sourceLang}:\n` +
+             "सुप्रभात, आज आप कैसे हैं?";
+    }
+
+    // 2. French Target Fallbacks
+    if (isFrench) {
+      if (mode === "grammar" || lower.includes("vous") || lower.includes("tu")) {
+        return "💡 **Grammaire Française:**\n" +
+               "En français, utilisez **'vous'** pour la politesse et le milieu professionnel, et **'tu'** avec vos amis proches.\n\n" +
+               `*Explication (${sourceLang}):* फ़्रेंच में आदर और औपचारिकता के लिए 'vous' का प्रयोग करें।\n\n` +
+               "Comment puis-je vous aider aujourd'hui ?";
+      }
+      if (mode === "vocabulary") {
+        return "📖 **Vocabulaire Français Utile:**\n" +
+               "1. **Bienvenue** - स्वागत है (Welcome)\n" +
+               "2. **Enchanté(e)** - आपसे मिलकर खुशी हुई (Nice to meet you)\n" +
+               "3. **S'il vous plaît** - कृपया (Please)\n\n" +
+               "Pouvez-vous vous présenter en une phrase ?";
+      }
+      return "Bonjour ! Je suis votre professeur personnel de français. 🥐 Comment allez-vous aujourd'hui ?\n\n" +
+             `*Signification (${sourceLang}):* नमस्ते! मैं आपका फ़्रेंच शिक्षक हूँ। आज आप कैसे हैं?`;
+    }
+
+    // 3. Spanish Target Fallbacks
+    if (isSpanish) {
+      if (mode === "grammar" || lower.includes("ser") || lower.includes("estar")) {
+        return "💡 **Gramática Española:**\n" +
+               "* **Ser:** Se usa para características permanentes (ej. *'Soy estudiante'*).\n" +
+               "* **Estar:** Se usa para estados temporales o ubicaciones (ej. *'Estoy feliz'*).\n\n" +
+               `*Explicación (${sourceLang}):* 'Ser' स्थायी पहचान के लिए और 'Estar' अस्थायी स्थिति के लिए प्रयुक्त होता है।`;
+      }
+      return "¡Hola! Soy tu profesor personal de español. 🇪🇸 ¿Cómo estás hoy?\n\n" +
+             `*Significado (${sourceLang}):* नमस्ते! मैं आपका स्पैनिश शिक्षक हूँ। आज आप कैसे हैं?`;
+    }
+
+    // 4. German Target Fallbacks
+    if (isGerman) {
+      if (mode === "grammar" || lower.includes("der") || lower.includes("die") || lower.includes("das")) {
+        return "💡 **Deutsche Grammatik:**\n" +
+               "Im Deutschen haben Nomen drei Artikel: **der** (maskulin), **die** (feminin), **das** (neutral).\n\n" +
+               `*Erklärung (${sourceLang}):* जर्मन में संज्ञाओं के तीन लिंग रूप होते हैं: der, die, और das.`;
+      }
+      return "Guten Tag! Ich bin Ihr persönlicher Deutschlehrer. 🇩🇪 Wie geht es Ihnen heute?\n\n" +
+             `*Bedeutung (${sourceLang}):* नमस्ते! मैं आपका जर्मन शिक्षक हूँ। आज आप कैसे हैं?`;
+    }
+
+    // 5. English Target Fallbacks
     if (lower.includes("interview")) {
-      return "💡 **Note:** Live AI is using fallback mode (valid API key not found).\n\n" +
+      return "💡 **Note:** Live AI is using conversational fallback.\n\n" +
              "Excellent! Let's practice a job interview. 💼 I will act as the interviewer. To start, tell me: what role are you applying for, and why are you interested in it?";
     }
     if (lower.includes("perfect") || lower.includes("tense")) {
-      return "💡 **Note:** Live AI is using fallback mode (valid API key not found).\n\n" +
-             "The **Present Perfect** tense connects the past to the present (e.g., 'I have lived here for 2 years'). It is formed by: **Subject + have/has + Past Participle**.\n\nTry writing a sentence in the Present Perfect about something you did today, and I will check it!";
+      return "💡 **Present Perfect Tense Guide:**\n" +
+             "The **Present Perfect** connects the past to the present (e.g. *'I have lived here for two years'*).\n" +
+             "Formula: **Subject + have/has + Past Participle**.\n\n" +
+             "Try writing a sentence in the Present Perfect about something you did today!";
     }
     if (lower.includes("have a") || lower.includes("she have")) {
-      return "💡 **Note:** Live AI is using fallback mode (valid API key not found).\n\n" +
-             "💡 **Grammar Corrections:**\n1. Use **'has'** with 'she' (third-person singular).\n   * *Incorrect:* 'She have'\n   * *Correct:* 'She has'\n\n**Improved Sentence:** *'She has a dog and she went to school yesterday.'*";
+      return "💡 **Grammar Corrections:**\n" +
+             "* *Incorrect:* 'She have'\n" +
+             "* *Correct:* 'She has' (use singular verbs with third-person singular pronoun 'she').\n\n" +
+             "**Corrected Sentence:** *'She has a dog and she went to school yesterday.'*";
     }
-    return "💡 **Note:** Live AI is using fallback mode (valid API key not found).\n\n" +
-           "Hello! I am your English Tutor. How can I help you practice your conversation, grammar, or vocabulary skills today?";
+
+    return `Hello! I am your personal ${targetLang} teacher. 👋\n\n` +
+           `I can help you practice conversation, learn grammar rules, build vocabulary, and translate between ${sourceLang} and ${targetLang}.\n\n` +
+           `What topic would you like to explore today?`;
   }
 }
 
@@ -205,108 +368,22 @@ export async function saveAttemptAction(phrase: string, score: number, difficult
 }
 
 export async function getAttemptsAction() {
-  const cookieStore = await cookies();
-  const userCookie = cookieStore.get("user")?.value;
-  const sessionUser = userCookie ? verifySession(userCookie) : null;
-  if (!sessionUser) return [];
-
-  try {
-    const user = await db.orm.public.User.where({ email: sessionUser.email }).first();
-    if (!user) return [];
-
-    // Query attempts from PostgreSQL
-    const attempts = await db.orm.public.PracticeAttempt.where({ userId: user.id }).orderBy((m) => m.createdAt.desc()).all();
-    return attempts;
-  } catch (e) {
-    console.error("Failed to query attempts:", e);
-    return [];
-  }
+  return voiceGetAttemptsAction();
 }
 
 export async function analyzeSpeakingAction(
   targetPhrase: string,
   userTranscript: string,
-  difficulty: string
+  difficulty: string,
+  targetLangCode?: string,
+  sourceLangCode?: string
 ) {
-  const cookieStore = await cookies();
-  const userCookie = cookieStore.get("user")?.value;
-  const sessionUser = userCookie ? verifySession(userCookie) : null;
-  if (!sessionUser) {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  try {
-    const user = await db.orm.public.User.where({ email: sessionUser.email }).first();
-    if (!user) return { success: false, error: "User not found" };
-
-    const prompt = 
-      `You are an expert English Pronunciation and Speaking Evaluator.\n\n` +
-      `Target Phrase: "${targetPhrase}"\n` +
-      `User Spoken Transcript: "${userTranscript || '(silent or empty)'}"\n\n` +
-      `Evaluate the speaking attempt. Identify:\n` +
-      `1. Grammar Feedback: Any additions, omissions, or structural issues.\n` +
-      `2. Fluency Feedback: Evaluate flow, substitutions, omissions of target words.\n` +
-      `3. Vocabulary Feedback: Comments on vocabulary usage and alternatives if applicable.\n` +
-      `4. Structured Score: Output an integer score between 0 and 100 based on accuracy matching the target phrase.\n\n` +
-      `IMPORTANT: Your output MUST be a valid JSON object matching the following structure:\n` +
-      `{\n` +
-      `  "score": number,\n` +
-      `  "grammar": "detailed string feedback",\n` +
-      `  "fluency": "detailed string feedback",\n` +
-      `  "vocab": "detailed string feedback"\n` +
-      `}`;
-
-    let result = {
-      score: 50,
-      grammar: "Please speak clearly into the microphone.",
-      fluency: "Unable to detect speech stream.",
-      vocab: "No vocabulary analysis possible."
-    };
-
-    try {
-      const responseText = await callGeminiFast({
-        contents: prompt,
-        timeoutMs: 6000,
-      });
-
-      const cleanJSON = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(cleanJSON);
-      if (typeof parsed.score === "number") result.score = parsed.score;
-      if (parsed.grammar) result.grammar = parsed.grammar;
-      if (parsed.fluency) result.fluency = parsed.fluency;
-      if (parsed.vocab) result.vocab = parsed.vocab;
-    } catch (apiError) {
-      console.error("Gemini analysis error, using similarity calculation fallback:", apiError);
-      const clean = (s: string) => s.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").split(/\s+/).filter(Boolean);
-      const w1 = clean(userTranscript);
-      const w2 = clean(targetPhrase);
-      let matches = 0;
-      w1.forEach(word => { if (w2.includes(word)) matches++; });
-      const fallbackScore = Math.round((matches / Math.max(w1.length, w2.length)) * 100) || 0;
-      
-      result.score = fallbackScore;
-      result.grammar = `Offline Fallback: Spoke ${w1.length} words out of ${w2.length} target words.`;
-      result.fluency = `Offline Fallback: Word match rate is ${fallbackScore}%.`;
-      result.vocab = `Offline Fallback: Target phrase difficulty is ${difficulty}.`;
-    }
-
-    const status = result.score >= 90 ? "Excellent" : result.score >= 75 ? "Good" : "Needs Practice";
-
-    const attempt = await db.orm.public.PracticeAttempt.create({
-      userId: user.id,
-      phrase: targetPhrase,
-      score: result.score,
-      difficulty,
-      status,
-      transcript: userTranscript,
-      grammarFeedback: result.grammar,
-      fluencyFeedback: result.fluency,
-      vocabFeedback: result.vocab,
-    });
-
-    return { success: true, attempt };
-  } catch (error: any) {
-    console.error("Failed in analyzeSpeakingAction:", error);
-    return { success: false, error: error.message || "Database action error" };
-  }
+  return voiceAnalyzeSpeakingAction(
+    targetPhrase,
+    userTranscript,
+    difficulty,
+    targetLangCode,
+    sourceLangCode
+  );
 }
+

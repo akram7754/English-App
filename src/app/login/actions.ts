@@ -4,6 +4,7 @@ import { db } from "../../prisma/db";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { hashPassword, verifyPassword, signSession, verifySession } from "../../lib/auth";
+import { setSessionCookie, deleteSessionCookie } from "../../lib/session-cookie";
 
 export async function loginAction(email: string, password?: string) {
   if (!email) {
@@ -42,20 +43,14 @@ export async function loginAction(email: string, password?: string) {
     }
 
     try {
-      const cookieStore = await cookies();
       const sessionToken = signSession({
+        id: user.id,
         email: user.email,
         name: user.name || user.username || "Sarah Jenkins",
         role: user.role || "student",
       });
 
-      cookieStore.set("user", sessionToken, {
-        path: "/",
-        maxAge: 86400, // 1 day
-        httpOnly: false,
-        secure: false,
-        sameSite: "lax",
-      });
+      await setSessionCookie(sessionToken);
     } catch (cookieErr: any) {
       if (cookieErr?.message?.includes("outside a request scope")) {
         // Safe fallback in standalone test runners
@@ -96,20 +91,14 @@ export async function signupAction(username: string, email: string, password?: s
       passwordHash: hash,
     });
 
-    const cookieStore = await cookies();
     const sessionToken = signSession({
+      id: user.id,
       email: user.email,
       name: user.name || user.username,
       role: user.role || "student",
     });
 
-    cookieStore.set("user", sessionToken, {
-      path: "/",
-      maxAge: 86400, // 1 day
-      httpOnly: false,
-      secure: false,
-      sameSite: "lax",
-    });
+    await setSessionCookie(sessionToken);
 
     return { success: true };
   } catch (error) {
@@ -119,8 +108,7 @@ export async function signupAction(username: string, email: string, password?: s
 }
 
 export async function logoutAction() {
-  const cookieStore = await cookies();
-  cookieStore.delete("user");
+  await deleteSessionCookie();
   redirect("/login");
 }
 
@@ -155,6 +143,8 @@ export async function getAuthUserRoleAction(standaloneSessionToken?: string): Pr
   email?: string;
   name?: string;
   level?: string;
+  nativeLanguage?: string;
+  targetLanguage?: string;
 }> {
   try {
     let userCookie: string | undefined = standaloneSessionToken;
@@ -178,6 +168,8 @@ export async function getAuthUserRoleAction(standaloneSessionToken?: string): Pr
       email: dbUser?.email || sessionUser.email,
       name: dbUser?.name || dbUser?.username || sessionUser.name || "Learner",
       level: dbUser?.level || "Beginner",
+      nativeLanguage: dbUser?.nativeLanguage || sessionUser.nativeLanguage || "Hindi",
+      targetLanguage: dbUser?.targetLanguage || sessionUser.targetLanguage || "English",
     };
   } catch (error) {
     console.error("Error retrieving user role from database:", error);
@@ -267,13 +259,7 @@ export async function changePasswordAction(
         role: dbUser.role || "student",
       });
 
-      cookieStore.set("user", sessionToken, {
-        path: "/",
-        maxAge: 86400,
-        httpOnly: false,
-        secure: false,
-        sameSite: "lax",
-      });
+      await setSessionCookie(sessionToken);
     } catch (cookieErr) {
       // Safe fallback in standalone test contexts
     }

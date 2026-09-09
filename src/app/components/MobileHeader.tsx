@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { logoutAction } from "../login/actions";
 import UserProfileDropdown from "./UserProfileDropdown";
+import NotificationDropdown from "./NotificationDropdown";
+import ThemeSwitcher from "./ThemeSwitcher";
+import { USER_NAVIGATION } from "./userNavigation";
 
 interface MobileHeaderProps {
   userName: string;
@@ -30,20 +33,20 @@ export default function MobileHeader({
     const isActive = activeNav === key;
     return `flex items-center gap-3 px-4 py-2.5 rounded-lg transition ${
       isActive
-        ? "bg-indigo-900 text-white font-medium shadow-sm"
-        : "hover:bg-indigo-900/40 hover:text-white text-indigo-100"
+        ? "bg-indigo-900 text-white font-medium shadow-sm dark:bg-indigo-600/30 dark:text-indigo-200 dark:border dark:border-indigo-500/40"
+        : "hover:bg-indigo-900/40 hover:text-white text-indigo-100 dark:text-zinc-300 dark:hover:bg-zinc-800/60 dark:hover:text-white"
     }`;
   };
 
   return (
-    <div className="md:hidden shrink-0">
+    <div className="md:hidden shrink-0 sticky top-0 z-40">
       {/* Top Mobile Bar */}
-      <header className="h-16 bg-indigo-950 text-indigo-100 px-6 flex items-center justify-between border-b border-indigo-900/60 shadow-md">
+      <header className="h-16 bg-indigo-950 text-indigo-100 dark:bg-[#090b14] dark:border-zinc-800/80 px-4 sm:px-6 flex items-center justify-between border-b border-indigo-900/60 shadow-md">
         <div className="flex items-center gap-3">
           <button
             onClick={toggleMenu}
-            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-indigo-900 transition focus:outline-none"
-            aria-label="Toggle Menu"
+            className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-indigo-900 transition focus:outline-none touch-manipulation cursor-pointer"
+            aria-label="Toggle Navigation Menu"
           >
             {isOpen ? (
               <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,7 +61,9 @@ export default function MobileHeader({
           <span className="text-lg font-bold tracking-tight text-white">English AI</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <ThemeSwitcher variant="compact" className="text-white hover:bg-indigo-900/70 border-indigo-800/60" />
+          <NotificationDropdown variant="mobile" />
           <UserProfileDropdown
             userName={userName}
             userInitials={userInitials}
@@ -77,7 +82,7 @@ export default function MobileHeader({
           <div onClick={toggleMenu} className="fixed inset-0 bg-black/50 transition-opacity" />
 
           {/* Drawer Content */}
-          <div className="relative w-64 max-w-xs bg-indigo-950 text-indigo-100 flex flex-col justify-between h-full p-6 shadow-2xl z-50">
+          <div className="relative w-64 max-w-xs bg-indigo-950 text-indigo-100 dark:bg-[#090b14] dark:text-zinc-200 dark:border-r dark:border-zinc-800/80 flex flex-col justify-between h-full p-6 shadow-2xl z-50">
             <div>
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
@@ -86,7 +91,7 @@ export default function MobileHeader({
                   </div>
                   <span className="text-xl font-bold tracking-tight text-white">English AI</span>
                 </div>
-                <button onClick={toggleMenu} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-indigo-900 transition focus:outline-none">
+                <button onClick={toggleMenu} aria-label="Close Menu" className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-indigo-900 transition focus:outline-none cursor-pointer">
                   <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -94,95 +99,45 @@ export default function MobileHeader({
               </div>
 
               <nav className="space-y-1">
-                {/* 1. Dashboard */}
-                <Link
-                  href="/"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("dashboard")}
-                >
-                  Dashboard
-                </Link>
+                {USER_NAVIGATION.map((item) => (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    onClick={toggleMenu}
+                    className={getMobileItemClass(item.key)}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
 
-                {/* 2. AI Voice Tutor */}
-                <Link
-                  href="/voice-conversation"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("voice-conversation")}
-                >
-                  🎙️ AI Voice Tutor
-                </Link>
-
-                {/* 3. My Progress */}
-                <Link
-                  href="/progress"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("progress")}
-                >
-                  My Progress
-                </Link>
-
-                {/* 4. AI Tutor */}
-                <Link
-                  href="/ai-tutor"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("ai-tutor")}
-                >
-                  AI Tutor
-                </Link>
-
-                {/* 5. AI Chat */}
-                <Link
-                  href="/ai-chat"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("ai-chat")}
-                >
-                  AI Chat
-                </Link>
-
-                {/* 6. Voice Practice */}
-                <Link
-                  href="/voice-practice"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("voice-practice")}
-                >
-                  Voice Practice
-                </Link>
-
-                {/* 7. Lessons / Skills */}
-                <Link
-                  href="/lessons"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("lessons")}
-                >
-                  Lessons / Skills
-                </Link>
-
-                {/* 8. Grammar Check */}
-                <Link
-                  href="/grammar-correction"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("grammar-correction")}
-                >
-                  Grammar Check
-                </Link>
-
-                {/* 9. Speaking Score */}
-                <Link
-                  href="/speaking-score"
-                  onClick={toggleMenu}
-                  className={getMobileItemClass("speaking-score")}
-                >
-                  Speaking Score
-                </Link>
-
-                {/* 10. Admin Panel (Admin Only) */}
+                {/* Admin Panel (Admin Only) */}
                 {isAdmin && (
                   <Link
                     href="/admin"
                     onClick={toggleMenu}
                     className={getMobileItemClass("admin")}
                   >
-                    Admin Panel
+                    <svg
+                      className="w-5 h-5 shrink-0 text-purple-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <span>Admin Panel</span>
                   </Link>
                 )}
 
@@ -195,7 +150,12 @@ export default function MobileHeader({
               </nav>
             </div>
 
-            <div className="pt-6 border-t border-indigo-900/60">
+            <div className="pt-4 border-t border-indigo-900/60 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-indigo-200">Theme</span>
+                <ThemeSwitcher variant="segmented" />
+              </div>
+
               <div className="text-xs text-indigo-200">
                 <p className="font-semibold text-white">Student: {userName}</p>
                 <p className="opacity-75">English AI writing & speech</p>
