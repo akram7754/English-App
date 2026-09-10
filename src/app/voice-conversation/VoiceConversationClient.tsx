@@ -109,6 +109,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
       id: "ai-1",
       sender: "ai",
       text: "Tell me about yourself.",
+      pronunciation: "Tell mee uh-bowt yoor-self.",
       nativeExplanation: "अपने बारे में बताइए।",
       time: "11:30 AM",
     },
@@ -123,6 +124,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
       id: "ai-2",
       sender: "ai",
       text: "That's good. What are your main strengths?",
+      pronunciation: "Dhats good. Wut ahr yoor mayn strengths?",
       nativeExplanation: "बहुत बढ़िया। आपकी मुख्य खूबियाँ क्या हैं?",
       time: "11:31 AM",
     },
@@ -389,6 +391,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
           id: `ai-${++idCounterRef.current}`,
           sender: "ai",
           text: res.result.spokenText || res.result.targetPhrase,
+          pronunciation: res.result.pronunciation,
           nativeExplanation: res.result.nativeExplanation,
           time: timeStr,
         };
@@ -965,6 +968,8 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
                           nativeExplanation={msg.nativeExplanation}
                           targetLangCode={targetLangCode}
                           sourceLangCode={sourceLangCode}
+                          targetLangName={targetLang.name}
+                          sourceLangName={sourceLang.name}
                           ttsLocale={targetLang.ttsLang}
                           onSpeak={() => setFlowState("SPEAKING")}
                           variant="dark"

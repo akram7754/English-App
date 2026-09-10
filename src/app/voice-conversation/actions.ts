@@ -72,8 +72,18 @@ export async function processVoiceConversationTurnAction(
       result = {
         aiReply: parsed.aiReply || "",
         targetPhrase: parsed.targetPhrase || "Let's continue our conversation.",
-        pronunciation: parsed.pronunciation || "",
-        nativeExplanation: parsed.nativeExplanation || "",
+        pronunciation:
+          parsed.pronunciation ||
+          parsed.read ||
+          parsed.romanPronunciation ||
+          parsed.romanized ||
+          "",
+        nativeExplanation:
+          parsed.nativeExplanation ||
+          parsed.explanation ||
+          parsed.meaning ||
+          parsed.translation ||
+          "",
         spokenText:
           parsed.spokenText ||
           `${parsed.aiReply || ""} ${parsed.targetPhrase || ""}`.trim(),

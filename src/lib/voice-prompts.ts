@@ -1,7 +1,10 @@
 import {
   getRomanizedPronunciation,
+  cleanRomanPronunciation,
   containsArabic,
+  containsDevanagari,
 } from "./transliteration";
+import { getLanguageByName, getLanguageByCode, LanguageConfig } from "./languages";
 
 export type TutorPersonality =
   | "Friendly Teacher"
@@ -15,8 +18,8 @@ export interface VoiceTurnPayload {
   questionNumber: number; // 1 to 10
   totalQuestions?: number; // default 10
   personality?: TutorPersonality;
-  sourceLanguage: string; // e.g. "Hindi"
-  targetLanguage: string; // e.g. "English"
+  sourceLanguage: string; // e.g. "Hindi", "Arabic", "French", etc.
+  targetLanguage: string; // e.g. "English", "Arabic", "French", etc.
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   topic: string; // e.g. "Job Interview"
   userTranscript: string;
@@ -49,9 +52,9 @@ export interface VoiceEvaluationMetrics {
 export interface VoiceTurnResult {
   aiReply?: string; // Natural conversational reply to user's speech
   targetPhrase: string; // Next question or target sentence in target language
-  pronunciation?: string; // Phonetic pronunciation in Roman/Latin letters for Arabic/non-Latin scripts
-  nativeExplanation: string; // Meaning/hint in native language (e.g. Hindi)
-  spokenText: string; // Combined audio string to speak via TTS
+  pronunciation: string; // Phonetic pronunciation in Roman/Latin letters for all languages
+  nativeExplanation: string; // Meaning/hint in source language native script
+  spokenText: string; // Combined audio string to speak via TTS in target language
   evaluation?: VoiceEvaluationMetrics;
   questionNumber: number;
   totalQuestions: number;
@@ -110,6 +113,25 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
         `\n`
       : "";
 
+  const universalFormatInstructions =
+    `==================================================\n` +
+    `REQUIRED UNIVERSAL 3-PART RESPONSE FORMAT:\n` +
+    `==================================================\n` +
+    `Every AI response must provide these 3 distinct parts:\n` +
+    `1. TARGET LANGUAGE ORIGINAL SCRIPT ("aiReply" and "targetPhrase" / "spokenText"):\n` +
+    `   - The response in the student's target language: ${targetLanguage}.\n` +
+    `   - Preserve the native script of ${targetLanguage} (e.g. Arabic script for Arabic, Devanagari for Hindi, Latin alphabet for French/German/Spanish/English).\n` +
+    `2. ROMAN PRONUNCIATION ("pronunciation" field):\n` +
+    `   - Show the pronunciation of the ${targetLanguage} response using Roman/Latin letters.\n` +
+    `   - This is pronunciation/transliteration of the ${targetLanguage} sentence, NOT an English translation.\n` +
+    `   - For non-Latin scripts (Arabic, Hindi), provide accurate Roman transliteration (e.g. Arabic: 'Kaifa haluka al-yawm?', Hindi: 'Aaj aap kaise hain?').\n` +
+    `   - For Latin-script languages (French, German, Spanish, English), provide an intuitive phonetic reading in Roman letters (e.g. French 'Comment allez-vous aujourd\\'hui ?' -> 'Koh-mahn ah-lay voo oh-zhoor-dwee ?').\n` +
+    `   - NEVER output an English translation in the 'pronunciation' field.\n` +
+    `3. SOURCE LANGUAGE MEANING ("nativeExplanation" field):\n` +
+    `   - Translate and explain the ${targetLanguage} response into the student's native language: ${sourceLanguage}.\n` +
+    `   - Preserve the native script of ${sourceLanguage} (e.g. Hindi -> Devanagari script, Arabic -> Arabic script, French -> French, German -> German, Spanish -> Spanish, English -> English).\n` +
+    `   - Do not output English if ${sourceLanguage} is not English.\n\n`;
+
   if (turnType === "start" || !userTranscript) {
     return (
       `You are a natural, bilingual AI Voice Conversation Tutor acting as a "${personality}".\n` +
@@ -118,10 +140,11 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
       `Overall Session Theme: ${topic}\n` +
       `Target Language: ${targetLanguage} | Student's Native Language: ${sourceLanguage}\n` +
       weaknessInstruction +
-      `\nTASK: Generate an opening greeting and friendly check-in to start Question 1 of ${totalQuestions}.\n` +
+      universalFormatInstructions +
+      `TASK: Generate an opening greeting and friendly check-in to start Question 1 of ${totalQuestions}.\n` +
       `RULES FOR OPENING:\n` +
       `1. Greet the student warmly in ${targetLanguage} matching your persona.\n` +
-      `2. For French: Always use the formal "vous" consistently (e.g. "Bonjour ! Bienvenue. Comment allez-vous aujourd'hui ?"). NEVER use "tu".\n` +
+      `2. For French: Always use the formal "vous" consistently (e.g. "Bonjour ! Comment allez-vous aujourd'hui ?"). NEVER use "tu".\n` +
       `3. For Spanish/German: Maintain consistent formal register.\n` +
       `4. Invite the student to respond naturally (e.g. ask how they are doing or if they are ready for today's session).\n` +
       `5. Do not jump into deep interview or topic questions on the very first turn before the student has even answered the greeting.\n\n` +
@@ -129,8 +152,8 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
       `{\n` +
       `  "aiReply": "Brief greeting in ${targetLanguage}",\n` +
       `  "targetPhrase": "Friendly opening question in ${targetLanguage}",\n` +
-      `  "pronunciation": "Phonetic reading/transliteration in Roman/Latin letters (e.g. for Arabic: 'Sabah al-khair, kaifa haluka al-yawm?'). Required for Arabic or non-Latin target languages.",\n` +
-      `  "nativeExplanation": "Translation and explanation of the question in ${sourceLanguage} (e.g. Hindi: 'सुप्रभात, आज आप कैसे हैं?')",\n` +
+      `  "pronunciation": "Phonetic reading/transliteration of the target response in Roman/Latin letters",\n` +
+      `  "nativeExplanation": "Translation and explanation of the response in ${sourceLanguage} native script",\n` +
       `  "spokenText": "Full text to speak aloud via TTS in ${targetLanguage} (greeting + question)",\n` +
       `  "questionNumber": 1,\n` +
       `  "totalQuestions": ${totalQuestions}\n` +
@@ -148,6 +171,7 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
     `Current Progress: Question ${questionNumber} of ${totalQuestions}\n` +
     weaknessInstruction +
     historyContext +
+    universalFormatInstructions +
     `\nSTUDENT'S LATEST SPOKEN MESSAGE: "${userTranscript}"\n\n` +
     `==================================================\n` +
     `STRICT PRIMARY CONVERSATION DIRECTIVE (MANDATORY):\n` +
@@ -169,34 +193,34 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
     `MANDATORY FLOW & MEANING SAFETY RULES:\n` +
     `==================================================\n` +
     `1. SHORT FOOD / BEVERAGE / CONCRETE REQUESTS (e.g., "tea please", "coffee", "un thé"):\n` +
-    `   - Respond naturally to the actual request in ${targetLanguage} (e.g., in French: "Bien sûr. Un thé, s'il vous plaît." or "Bien sûr. Vous voulez un thé ?").\n` +
+    `   - Respond naturally to the actual request in ${targetLanguage}.\n` +
     `   - DO NOT say "C'est une excellente idée" or "A cup of tea is a great idea!" because the user did not say having tea was a good idea.\n` +
     `   - DO NOT jump to "How can I help you today?" or ask job/interview questions.\n\n` +
     `2. GREETINGS (e.g., "Good morning", "Hello", "Hi", "Bonjour"):\n` +
-    `   - Respond with a natural greeting in ${targetLanguage} and ask how they are doing (e.g., in French: "Bonjour ! Comment allez-vous aujourd'hui ?").\n` +
+    `   - Respond with a natural greeting in ${targetLanguage} and ask how they are doing.\n` +
     `   - DO NOT ask "Quel poste recherchez-vous ?" or introduce job/interview questions unless the conversation has naturally reached that topic.\n\n` +
     `3. SMALL TALK & WELL-BEING (e.g., "I'm good", "I'm doing well", "All good"):\n` +
-    `   - Acknowledge warmly in ${targetLanguage} (e.g., in French: "Ravi de l'entendre ! Comment puis-je vous aider aujourd'hui ?" / in English: "That's great to hear! How can I help you today?").\n` +
+    `   - Acknowledge warmly in ${targetLanguage}.\n` +
     `   - DO NOT mention the words "job", "interview", "mock", "career", or "practice" here.\n\n` +
     `4. PHYSICAL STATE & FEELINGS (e.g., "I am tired."):\n` +
-    `   - Respond with natural empathy (e.g., in French: "Je suis désolé de l'entendre. Vous voulez faire une petite pause ?").\n` +
+    `   - Respond with natural empathy.\n` +
     `   - DO NOT invent reasons such as "You had a difficult day at work." Address only what was said.\n\n` +
     `5. INTERESTS & HOBBIES (e.g., "I like football."):\n` +
-    `   - Conversational follow-up (e.g., in French: "J'aime aussi parler de football. Quelle équipe aimez-vous ?" / in English: "I enjoy football too! Which team do you like?").\n` +
+    `   - Conversational follow-up.\n` +
     `   - DO NOT invent facts like "You play football every weekend." Follow-up questions are allowed; invented facts are forbidden.\n\n` +
     `6. PROFESSION & WORK STATEMENTS (e.g., "I work in marketing"):\n` +
-    `   - Natural field-related response (e.g., in French: "C'est un domaine très dynamique. Quel type de marketing faites-vous ?" / in English: "That is a very dynamic field. What type of marketing do you do?").\n` +
+    `   - Natural field-related response.\n` +
     `   - DO NOT invent the user's company, job title, salary, or years of experience.\n\n` +
     `7. USER EXPLICITLY INITIATES TOPIC (e.g., "I am here for a job interview", "Can you help me practice my interview?"):\n` +
-    `   - Transition into the topic naturally (e.g., in French: "Bienvenue ! Commençons votre entraînement pour l'entretien d'embauche. Pour commencer, pouvez-vous vous présenter brièvement ?").\n\n` +
+    `   - Transition into the topic naturally.\n\n` +
     `8. CLARIFICATION REQUESTS (e.g., "I don't understand", "Je ne comprends pas"):\n` +
     `   - Rephrase or explain the previous AI message more simply in ${targetLanguage}.\n` +
     `   - DO NOT advance to an unrelated next question. Set "questionNumber": ${questionNumber}.\n\n` +
     `9. MEANING INQUIRIES (e.g., "What does this mean?", "Qu'est-ce que ça veut dire ?"):\n` +
     `   - Explain the previous AI message in the student's native language (${sourceLanguage}).\n` +
     `   - DO NOT advance to an unrelated question. Set "questionNumber": ${questionNumber}.\n\n` +
-    `10. PRONOUN & REGISTER CONSISTENCY (FRENCH):\n` +
-    `   - Consistently use formal "vous" (vouvoyer) throughout the entire response. NEVER mix "vous" and "tu" in the same response or session!\n\n` +
+    `10. PRONOUN & REGISTER CONSISTENCY (FRENCH/SPANISH/GERMAN):\n` +
+    `   - For French: consistently use formal "vous" (vouvoyer). NEVER mix "vous" and "tu" in the same response or session!\n\n` +
     `11. CONVERSATION MEMORY & NO REPETITIONS:\n` +
     `   - Review PREVIOUS CONVERSATION HISTORY. Never repeat questions that have already been asked or answered.\n\n` +
     `==================================================\n` +
@@ -215,8 +239,8 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
     `{\n` +
     `  "aiReply": "Brief acknowledgment in ${targetLanguage} (or empty if targetPhrase covers it)",\n` +
     `  "targetPhrase": "Natural follow-up response or question in ${targetLanguage}",\n` +
-    `  "pronunciation": "Phonetic reading/transliteration in Roman/Latin letters (e.g. for Arabic: 'Sabah al-khair, kaifa haluka al-yawm?'). Required for Arabic or non-Latin target languages.",\n` +
-    `  "nativeExplanation": "Translation and explanation of the response/question in ${sourceLanguage} (e.g. Hindi: 'सुप्रभात, आज आप कैसे हैं?')",\n` +
+    `  "pronunciation": "Phonetic reading/pronunciation of the full ${targetLanguage} response in Roman/Latin letters",\n` +
+    `  "nativeExplanation": "Translation and explanation of the response/question in ${sourceLanguage} native script",\n` +
     `  "spokenText": "The complete, natural text to speak aloud via TTS in ${targetLanguage}",\n` +
     `  "questionNumber": ${Math.min(questionNumber + 1, totalQuestions)},\n` +
     `  "totalQuestions": ${totalQuestions},\n` +
@@ -240,15 +264,115 @@ export function buildVoiceTurnPrompt(payload: VoiceTurnPayload): string {
   );
 }
 
+/**
+ * Multilingual Canned Dialogue Phrases for Offline Fallbacks & Guardrails
+ */
+interface DialoguePhraseBundle {
+  [langCode: string]: {
+    reply: string;
+    phrase: string;
+    meaning: string;
+  };
+}
+
+const DIALOGUE_BUNDLES: Record<string, DialoguePhraseBundle> = {
+  tea_or_coffee: {
+    en: { reply: "Certainly.", phrase: "Here is your beverage.", meaning: "Certainly. Here is your beverage." },
+    hi: { reply: "ज़रूर।", phrase: "यह रहा आपका पेय।", meaning: "ज़रूर। यह रहा आपका पेय।" },
+    ar: { reply: "بالتأكيد.", phrase: "تفضل مشروبك، من فضلك.", meaning: "تفضل مشروبك، من فضلك." },
+    fr: { reply: "Bien sûr.", phrase: "Voici votre boisson, s'il vous plaît.", meaning: "Voici votre boisson, s'il vous plaît." },
+    es: { reply: "Por supuesto.", phrase: "Aquí tiene su bebida, por favor.", meaning: "Aquí tiene su bebida, por favor." },
+    de: { reply: "Natürlich.", phrase: "Hier ist Ihr Getränk, bitte.", meaning: "Hier ist Ihr Getränk, bitte." },
+  },
+  clarification: {
+    en: { reply: "No problem.", phrase: "Let me rephrase that more simply: Does that make sense?", meaning: "No problem, let me rephrase that more simply." },
+    hi: { reply: "कोई बात नहीं।", phrase: "मैं इसे और सरल तरीके से समझाता हूँ: क्या अब यह स्पष्ट है?", meaning: "कोई बात नहीं, मैं इसे और सरल तरीके से समझाता हूँ।" },
+    ar: { reply: "لا مشكلة.", phrase: "سأعيد صياغة ذلك بشكل أبسط: هل هذا أوضح لك؟", meaning: "لا مشكلة، سأوضح ذلك بشكل أبسط من أجلك." },
+    fr: { reply: "Pas de problème.", phrase: "Je reformule plus simplement : est-ce plus clair pour vous ?", meaning: "Pas de problème, laissez-moi reformuler plus simplement." },
+    es: { reply: "No hay problema.", phrase: "Se lo explico de forma más sencilla: ¿queda más claro?", meaning: "No hay problema, permítame explicarlo más sencillamente." },
+    de: { reply: "Kein Problem.", phrase: "Ich formuliere das einfacher: Ist das jetzt klarer für Sie?", meaning: "Kein Problem, ich erkläre es einfacher für Sie." },
+  },
+  greeting: {
+    en: { reply: "Good morning!", phrase: "How are you doing today?", meaning: "Good morning! How are you doing today?" },
+    hi: { reply: "नमस्ते!", phrase: "आज आप कैसे हैं?", meaning: "नमस्ते! आज आप कैसे हैं?" },
+    ar: { reply: "صباح الخير!", phrase: "كيف حالك اليوم؟", meaning: "صباح الخير! كيف حالك اليوم؟" },
+    fr: { reply: "Bonjour !", phrase: "Comment allez-vous aujourd'hui ?", meaning: "Bonjour ! Comment allez-vous aujourd'hui ?" },
+    es: { reply: "¡Hola!", phrase: "¿Cómo está usted hoy?", meaning: "¡Hola! ¿Cómo está usted hoy?" },
+    de: { reply: "Guten Tag !", phrase: "Wie geht es Ihnen heute?", meaning: "Guten Tag ! Wie geht es Ihnen heute?" },
+  },
+  small_talk: {
+    en: { reply: "That's great to hear!", phrase: "How can I help you today?", meaning: "That's great to hear! How can I help you today?" },
+    hi: { reply: "यह सुनकर अच्छा लगा!", phrase: "आज मैं आपकी क्या मदद कर सकता हूँ?", meaning: "यह सुनकर अच्छा लगा! आज मैं आपकी क्या मदद कर सकता हूँ?" },
+    ar: { reply: "يسعدني سماع ذلك!", phrase: "كيف يمكنني مساعدتك اليوم؟", meaning: "يسعدني سماع ذلك! كيف يمكنني مساعدتك اليوم؟" },
+    fr: { reply: "Ravi de l'entendre !", phrase: "Comment puis-je vous aider aujourd'hui ?", meaning: "Ravi de l'entendre ! Comment puis-je vous aider aujourd'hui ?" },
+    es: { reply: "¡Me alegra escucharlo!", phrase: "¿Cómo puedo ayudarle hoy?", meaning: "¡Me alegra escucharlo! ¿Cómo puedo ayudarle hoy?" },
+    de: { reply: "Freut mich zu hören !", phrase: "Wie kann ich Ihnen heute helfen?", meaning: "Freut mich zu hören ! Wie kann ich Ihnen heute helfen?" },
+  },
+  interview_intent: {
+    en: { reply: "Welcome!", phrase: "To begin, could you tell me a little about yourself?", meaning: "Welcome! To begin, could you tell me a little about yourself?" },
+    hi: { reply: "स्वागत है!", phrase: "शुरू करने के लिए, क्या आप अपने बारे में थोड़ा बता सकते हैं?", meaning: "स्वागत है! शुरू करने के लिए, क्या आप अपने बारे में थोड़ा बता सकते हैं?" },
+    ar: { reply: "أهلاً بك!", phrase: "في البداية، هل يمكنك التحدث عن نفسك باختصار؟", meaning: "أهلاً بك! في البداية، هل يمكنك التحدث عن نفسك باختصار؟" },
+    fr: { reply: "Bienvenue !", phrase: "Pour commencer, pouvez-vous vous présenter brièvement ?", meaning: "Bienvenue ! Pour commencer, pouvez-vous vous présenter brièvement ?" },
+    es: { reply: "¡Bienvenido!", phrase: "Para empezar, ¿podría contarme un poco sobre usted?", meaning: "¡Bienvenido! Para empezar, ¿podría contarme un poco sobre usted?" },
+    de: { reply: "Willkommen !", phrase: "Können Sie sich zu Beginn kurz vorstellen?", meaning: "Willkommen ! Können Sie sich zu Beginn kurz vorstellen?" },
+  },
+  tired: {
+    en: { reply: "I'm sorry to hear that.", phrase: "Would you like to take a short break?", meaning: "I'm sorry to hear that. Would you like to take a short break?" },
+    hi: { reply: "मुझे यह सुनकर दुख हुआ।", phrase: "क्या आप थोड़ा आराम लेना चाहेंगे?", meaning: "मुझे यह सुनकर दुख हुआ। क्या आप थोड़ा आराम लेना चाहेंगे?" },
+    ar: { reply: "يؤسفني سماع ذلك.", phrase: "هل ترغب في أخذ استراحة قصيرة؟", meaning: "يؤسفني سماع ذلك. هل ترغب في أخذ استراحة قصيرة؟" },
+    fr: { reply: "Je suis désolé de l'entendre.", phrase: "Vous voulez faire une petite pause ?", meaning: "Je suis désolé de l'entendre. Vous voulez faire une petite pause ?" },
+    es: { reply: "Siento escuchar eso.", phrase: "¿Le gustaría tomar un breve descanso?", meaning: "Siento escuchar eso. ¿Le gustaría tomar un breve descanso?" },
+    de: { reply: "Das tut mir leid.", phrase: "Möchten Sie eine kurze Pause machen?", meaning: "Das tut mir leid. Möchten Sie eine kurze Pause machen?" },
+  },
+  football: {
+    en: { reply: "I enjoy talking about football too.", phrase: "Which team do you like?", meaning: "I enjoy talking about football too. Which team do you like?" },
+    hi: { reply: "मुझे भी फ़ुटबॉल के बारे में बात करना पसंद है।", phrase: "आपकी पसंदीदा टीम कौन सी है?", meaning: "मुझे भी फ़ुटबॉल के बारे में बात करना पसंद है। आपकी पसंदीदा टीम कौन सी है?" },
+    ar: { reply: "أنا أيضاً أحب الحديث عن كرة القدم.", phrase: "ما هو فريقك المفضل؟", meaning: "أنا أيضاً أحب الحديث عن كرة القدم. ما هو فريقك المفضل؟" },
+    fr: { reply: "J'aime aussi parler de football.", phrase: "Quelle équipe aimez-vous ?", meaning: "J'aime aussi parler de football. Quelle équipe aimez-vous ?" },
+    es: { reply: "A mí también me gusta hablar de fútbol.", phrase: "¿Cuál es su equipo favorito?", meaning: "A mí también me gusta hablar de fútbol. ¿Cuál es su equipo favorito?" },
+    de: { reply: "Ich spreche auch gern über Fußball.", phrase: "Welche Mannschaft mögen Sie?", meaning: "Ich spreche auch gern über Fußball. Welche Mannschaft mögen Sie?" },
+  },
+  marketing: {
+    en: { reply: "That is a very dynamic field.", phrase: "What type of marketing do you do?", meaning: "That is a very dynamic field. What type of marketing do you do?" },
+    hi: { reply: "यह बहुत ही दिलचस्प क्षेत्र है।", phrase: "आप किस प्रकार के विपणन में काम करते हैं?", meaning: "यह बहुत ही दिलचस्प क्षेत्र है। आप किस प्रकार के विपणन में काम करते हैं?" },
+    ar: { reply: "هذا مجال ممتع للغاية.", phrase: "ما هو نوع التسويق الذي تعمل به؟", meaning: "هذا مجال ممتع للغاية. ما هو نوع التسويق الذي تعمل به؟" },
+    fr: { reply: "C'est un domaine très dynamique.", phrase: "Quel type de marketing faites-vous ?", meaning: "C'est un domaine très dynamique. Quel type de marketing faites-vous ?" },
+    es: { reply: "Es un campo muy dinámico.", phrase: "¿Qué tipo de marketing hace usted?", meaning: "Es un campo muy dinámico. ¿Qué tipo de marketing hace usted?" },
+    de: { reply: "Das ist ein sehr dynamisches Feld.", phrase: "Welche Art von Marketing machen Sie?", meaning: "Das ist ein sehr dynamisches Feld. Welche Art von Marketing machen Sie?" },
+  },
+  general_followup: {
+    en: { reply: "Thank you for sharing that.", phrase: "Could you tell me a little more about that?", meaning: "Thank you for sharing that. Could you tell me a little more about that?" },
+    hi: { reply: "धन्यवाद।", phrase: "क्या आप मुझे इसके बारे में थोड़ा और बता सकते हैं?", meaning: "धन्यवाद। क्या आप मुझे इसके बारे में थोड़ा और बता सकते हैं?" },
+    ar: { reply: "شكراً لإجابتك.", phrase: "هل يمكنك إخباري بالمزيد عن ذلك؟", meaning: "شكراً لإجابتك. هل يمكنك إخباري بالمزيد عن ذلك؟" },
+    fr: { reply: "Merci pour votre réponse.", phrase: "Pouvez-vous m'en dire un peu plus à ce sujet ?", meaning: "Merci pour votre réponse. Pouvez-vous m'en dire un peu plus à ce sujet ?" },
+    es: { reply: "Gracias por su respuesta.", phrase: "¿Podría contarme un poco más al respecto?", meaning: "Gracias por su respuesta. ¿Podría contarme un poco más al respecto?" },
+    de: { reply: "Danke für Ihre Antwort.", phrase: "Können Sie mir etwas mehr darüber erzählen?", meaning: "Danke für Ihre Antwort. Können Sie mir etwas mehr darüber erzählen?" },
+  },
+};
+
+function getBundleContent(bundleKey: string, tgtCode: string, srcCode: string) {
+  const bundle = DIALOGUE_BUNDLES[bundleKey] || DIALOGUE_BUNDLES.general_followup;
+  const tgtItem = bundle[tgtCode] || bundle.en;
+  const srcItem = bundle[srcCode] || bundle.en;
+  return {
+    reply: tgtItem.reply,
+    phrase: tgtItem.phrase,
+    meaning: srcItem.meaning,
+  };
+}
+
 export function validateAndSanitizeVoiceResponse(
   result: VoiceTurnResult,
   payload: VoiceTurnPayload
 ): { result: VoiceTurnResult; wasModified: boolean; reason?: string } {
   const transcript = (payload.userTranscript || "").trim();
   const transcriptLower = transcript.toLowerCase();
-  const isFrench =
-    payload.targetLanguage.toLowerCase().includes("french") ||
-    payload.targetLanguage.toLowerCase().includes("fr");
+
+  const tgtLang = getLanguageByName(payload.targetLanguage);
+  const srcLang = getLanguageByName(payload.sourceLanguage);
+  const tgtCode = tgtLang.code;
+  const srcCode = srcLang.code;
+
   let modified = false;
   let reason = "";
 
@@ -272,90 +396,33 @@ export function validateAndSanitizeVoiceResponse(
     ) {
       modified = true;
       reason = "Removed hallucinated praise/unrelated assistance from short beverage request";
-      const isCoffee = transcriptLower.includes("caf") || transcriptLower.includes("coffee");
-      if (isFrench) {
-        const item = isCoffee ? "café" : "thé";
-        result.aiReply = "Bien sûr.";
-        result.targetPhrase = `Un ${item}, s'il vous plaît.`;
-        result.spokenText = `Bien sûr. Un ${item}, s'il vous plaît.`;
-        result.nativeExplanation = `Certainly. One ${item === "café" ? "coffee" : "tea"}, please.`;
-      } else {
-        const item = isCoffee ? "coffee" : "tea";
-        result.aiReply = "Certainly.";
-        result.targetPhrase = `Here is your ${item}.`;
-        result.spokenText = `Certainly. Here is your ${item}.`;
-        result.nativeExplanation = `Here is your ${item}.`;
-      }
+      const bundle = getBundleContent("tea_or_coffee", tgtCode, srcCode);
+      result.aiReply = bundle.reply;
+      result.targetPhrase = bundle.phrase;
+      result.spokenText = `${bundle.reply} ${bundle.phrase}`.trim();
+      result.nativeExplanation = bundle.meaning;
     }
   }
 
   // 2. Clarification request: "I don't understand" / "Je ne comprends pas"
   const isDontUnderstand =
-    /^(i don't understand|i do not understand|je ne comprends pas|could you repeat|pardon|i didn't understand|je n'ai pas compris)\b/i.test(
+    /^(i don't understand|i do not understand|je ne comprends pas|could you repeat|pardon|i didn't understand|je n'ai pas compris|لا أفهم|لم أفهم|मुझे समझ नहीं आया)\b/i.test(
       transcriptLower
     );
   if (isDontUnderstand) {
     result.questionNumber = payload.questionNumber;
-    const history = payload.conversationHistory || [];
-    const lastAiTurn = [...history].reverse().find((h) => h.role === "model");
-    const prevText = lastAiTurn?.text || "";
-
-    if (isFrench) {
-      result.aiReply = "Pas de problème.";
-      result.targetPhrase = prevText
-        ? `Je reformule plus simplement : "${prevText}". Est-ce plus clair pour vous ?`
-        : "Je vais reformuler plus simplement pour vous.";
-      result.spokenText = result.targetPhrase;
-      result.nativeExplanation = "No problem, let me rephrase that more simply for you.";
-    } else {
-      result.aiReply = "No problem.";
-      result.targetPhrase = prevText
-        ? `Let me rephrase that more simply: "${prevText}". Does that make sense?`
-        : "Let me explain that more simply for you.";
-      result.spokenText = result.targetPhrase;
-      result.nativeExplanation = "No problem, let me rephrase that more simply.";
-    }
+    const bundle = getBundleContent("clarification", tgtCode, srcCode);
+    result.aiReply = bundle.reply;
+    result.targetPhrase = bundle.phrase;
+    result.spokenText = `${bundle.reply} ${bundle.phrase}`.trim();
+    result.nativeExplanation = bundle.meaning;
     modified = true;
     reason = "Handled student clarification without advancing question or inventing topic";
   }
 
-  // 3. Meaning inquiry: "What does this mean?" / "Qu'est-ce que ça veut dire ?"
-  const isMeaningInquiry =
-    /^(what does this mean|what do you mean|qu'est-ce que [çc]a veut dire|c'est quoi|what does it mean|explain this)\b/i.test(
-      transcriptLower
-    );
-  if (isMeaningInquiry) {
-    result.questionNumber = payload.questionNumber;
-    const history = payload.conversationHistory || [];
-    const lastAiTurn = [...history].reverse().find((h) => h.role === "model");
-    const prevText = lastAiTurn?.text || "";
-
-    if (payload.sourceLanguage === "French") {
-      result.aiReply = "Voici l'explication :";
-      result.targetPhrase = prevText
-        ? `En français, cela signifie : "${prevText}".`
-        : "Voici ce que cela signifie.";
-      result.spokenText = result.targetPhrase;
-      result.nativeExplanation = "Explication de la phrase en français.";
-    } else if (payload.sourceLanguage === "English") {
-      result.aiReply = "Here is the meaning:";
-      result.targetPhrase =
-        result.nativeExplanation || (prevText ? `In English, that means: "${prevText}".` : "Here is what that means.");
-      result.spokenText = result.targetPhrase;
-      result.nativeExplanation = `Meaning of previous sentence in English`;
-    } else {
-      result.aiReply = "अर्थ यह है:";
-      result.targetPhrase = result.nativeExplanation || (prevText ? `इसका मतलब है: "${prevText}"` : "यहाँ इसका अर्थ है।");
-      result.spokenText = result.targetPhrase;
-      result.nativeExplanation = `Explanation in ${payload.sourceLanguage}`;
-    }
-    modified = true;
-    reason = "Explained previous message in student native language without advancing question";
-  }
-
-  // 4. Greeting: prevent premature job questions
+  // 3. Greeting: prevent premature job questions
   const isGreeting =
-    /^(good morning|good afternoon|good evening|hello|hi|hey|bonjour|bonsoir|salut|hola|namaste)\b/i.test(
+    /^(good morning|good afternoon|good evening|hello|hi|hey|bonjour|bonsoir|salut|hola|namaste|صباح|أهلا|مرحبا)\b/i.test(
       transcriptLower
     );
   if (isGreeting && !transcriptLower.includes("interview") && !transcriptLower.includes("entretien")) {
@@ -363,23 +430,17 @@ export function validateAndSanitizeVoiceResponse(
     if (/poste|cherches|recherchez|interview|salary|salaire|cv|resume|embauche/i.test(textLower)) {
       modified = true;
       reason = "Removed premature job questions from greeting";
-      if (isFrench) {
-        result.aiReply = "Bonjour !";
-        result.targetPhrase = "Comment allez-vous aujourd'hui ?";
-        result.spokenText = "Bonjour ! Comment allez-vous aujourd'hui ?";
-        result.nativeExplanation = "Hello! How are you today?";
-      } else {
-        result.aiReply = "Good morning!";
-        result.targetPhrase = "How are you today?";
-        result.spokenText = "Good morning! How are you today?";
-        result.nativeExplanation = "Good morning! How are you today?";
-      }
+      const bundle = getBundleContent("greeting", tgtCode, srcCode);
+      result.aiReply = bundle.reply;
+      result.targetPhrase = bundle.phrase;
+      result.spokenText = `${bundle.reply} ${bundle.phrase}`.trim();
+      result.nativeExplanation = bundle.meaning;
     }
   }
 
-  // 5. Small talk: prevent premature job questions
+  // 4. Small talk: prevent premature job questions
   const isSmallTalk =
-    /^(i'm good|i am good|i'm fine|i am fine|doing well|all good|ça va|ca va|bien)\b/i.test(
+    /^(i'm good|i am good|i'm fine|i am fine|doing well|all good|ça va|ca va|bien|بخير|الحمد لله|मैं ठीक हूँ)\b/i.test(
       transcriptLower
     );
   if (isSmallTalk && !transcriptLower.includes("interview") && !transcriptLower.includes("entretien")) {
@@ -387,62 +448,16 @@ export function validateAndSanitizeVoiceResponse(
     if (/poste|cherches|recherchez|interview|salary|salaire|cv|resume|embauche|job\s*interview|mock/i.test(textLower)) {
       modified = true;
       reason = "Removed premature job questions from small talk";
-      if (isFrench) {
-        result.aiReply = "Ravi de l'entendre !";
-        result.targetPhrase = "Comment puis-je vous aider aujourd'hui ?";
-        result.spokenText = "Ravi de l'entendre ! Comment puis-je vous aider aujourd'hui ?";
-        result.nativeExplanation = "Glad to hear that! How can I help you today?";
-      } else {
-        result.aiReply = "That's great to hear!";
-        result.targetPhrase = "How can I help you today?";
-        result.spokenText = "That's great to hear! How can I help you today?";
-        result.nativeExplanation = "That's great to hear! How can I help you today?";
-      }
+      const bundle = getBundleContent("small_talk", tgtCode, srcCode);
+      result.aiReply = bundle.reply;
+      result.targetPhrase = bundle.phrase;
+      result.spokenText = `${bundle.reply} ${bundle.phrase}`.trim();
+      result.nativeExplanation = bundle.meaning;
     }
   }
 
-  // 6. Sport statement: prevent hallucinating that user plays every weekend or belongs to a club
-  if (transcriptLower.includes("football") || transcriptLower.includes("soccer")) {
-    const textLower = (result.spokenText || "").toLowerCase();
-    if (/jouez\s*(chaque|tous\s*les|le\s*week-end)|play\s*(every|on\s*the\s*weekend)|in\s*a\s*team|dans\s*un\s*club/i.test(textLower)) {
-      modified = true;
-      reason = "Removed hallucinated claim that user plays football every weekend";
-      if (isFrench) {
-        result.aiReply = "J'aime aussi parler de football.";
-        result.targetPhrase = "Quelle équipe aimez-vous ?";
-        result.spokenText = "J'aime aussi parler de football. Quelle équipe aimez-vous ?";
-        result.nativeExplanation = "I also enjoy talking about football. Which team do you like?";
-      } else {
-        result.aiReply = "I also enjoy talking about football.";
-        result.targetPhrase = "Which team do you like?";
-        result.spokenText = "I also enjoy talking about football. Which team do you like?";
-        result.nativeExplanation = "I also enjoy talking about football. Which team do you like?";
-      }
-    }
-  }
-
-  // 7. Profession statement: prevent hallucinating company, title, salary, or years of experience
-  if (transcriptLower.includes("marketing")) {
-    const textLower = (result.spokenText || "").toLowerCase();
-    if (/chez\s*(google|apple|meta)|depuis\s*\d+\s*ans|\d+\s*years\s*of\s*experience|votre\s*salaire|your\s*salary/i.test(textLower)) {
-      modified = true;
-      reason = "Removed hallucinated company/salary/years of experience for marketing statement";
-      if (isFrench) {
-        result.aiReply = "C'est un domaine très dynamique.";
-        result.targetPhrase = "Quel type de marketing faites-vous ?";
-        result.spokenText = "C'est un domaine très dynamique. Quel type de marketing faites-vous ?";
-        result.nativeExplanation = "That's a very dynamic field. What type of marketing do you do?";
-      } else {
-        result.aiReply = "That is a very dynamic field.";
-        result.targetPhrase = "What type of marketing do you do?";
-        result.spokenText = "That is a very dynamic field. What type of marketing do you do?";
-        result.nativeExplanation = "That is a very dynamic field. What type of marketing do you do?";
-      }
-    }
-  }
-
-  // 8. French Pronoun Consistency Gate: ensure formal "vous" consistently
-  if (isFrench) {
+  // 5. French Pronoun Consistency Gate: ensure formal "vous" consistently
+  if (tgtCode === "fr") {
     const text = result.spokenText || "";
     if (/\b(vous|votre|vos)\b/i.test(text) && /\b(tu|te|toi|cherches|peux-tu|veux-tu)\b/i.test(text)) {
       modified = true;
@@ -461,13 +476,21 @@ export function validateAndSanitizeVoiceResponse(
     }
   }
 
-  // 9. Multilingual Pronunciation Gate: Ensure Arabic/non-Latin response has Roman pronunciation
-  const isArabicTarget =
-    payload.targetLanguage.toLowerCase().includes("ar") ||
-    containsArabic(result.spokenText || result.targetPhrase);
-  if (isArabicTarget && !result.pronunciation) {
-    const textToRomanize = result.spokenText || result.targetPhrase;
-    result.pronunciation = getRomanizedPronunciation(textToRomanize, "ar");
+  // 6. Universal Roman Pronunciation Guarantee:
+  // Ensure Roman/Latin pronunciation is ALWAYS present and accurate for all languages
+  const spoken = (result.spokenText || result.targetPhrase || "").trim();
+  if (!result.pronunciation || result.pronunciation.trim().length === 0) {
+    result.pronunciation = getRomanizedPronunciation(spoken, tgtCode);
+    modified = true;
+  } else {
+    result.pronunciation = cleanRomanPronunciation(result.pronunciation, spoken);
+  }
+
+  // 7. Universal Native Explanation Guarantee:
+  if (!result.nativeExplanation || result.nativeExplanation.trim().length === 0) {
+    const bundle = getBundleContent("general_followup", tgtCode, srcCode);
+    result.nativeExplanation = bundle.meaning;
+    modified = true;
   }
 
   return { result, wasModified: modified, reason };
@@ -507,212 +530,41 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
   const status: "Excellent" | "Good" | "Needs Practice" =
     baseScore >= 88 ? "Excellent" : baseScore >= 75 ? "Good" : "Needs Practice";
 
-  const isFrench =
-    targetLanguage.toLowerCase().includes("french") || targetLanguage.toLowerCase().includes("fr");
-  const isArabic =
-    targetLanguage.toLowerCase().includes("arabic") || targetLanguage.toLowerCase().includes("ar");
+  const tgtLang = getLanguageByName(targetLanguage);
+  const srcLang = getLanguageByName(sourceLanguage);
+  const tgtCode = tgtLang.code;
+  const srcCode = srcLang.code;
 
-  const isTeaOrCoffee =
-    /^(tea\s*(please)?|coffee\s*(please)?|water\s*(please)?|un th[eé]|un caf[eé]|de l'eau)\b/i.test(
-      textLower
-    );
-  const isGreeting =
-    /^(good morning|good afternoon|good evening|hello|hi|hey|bonjour|bonsoir|salut|hola|buenos dias|namaste|صباح|أهلا|مرحبا)/i.test(
-      textLower
-    );
-  const isSmallTalk =
-    /^(i'm good|i am good|i'm fine|i am fine|doing well|all good|ça va|ca va|bien|muy bien|theek hu|بخير|الحمد لله)/i.test(
-      textLower
-    );
-  const isTired = /^(i am tired|i'm tired|fatigué|je suis fatigué|تعبان|أنا متعب)/i.test(textLower);
-  const isFootball = /^(i like football|i love football|j'aime le football|football|كرة القدم)/i.test(textLower);
-  const isMarketing = /^(i work in marketing|je travaille dans le marketing|marketing|تسويق|التسويق)/i.test(textLower);
-  const isInterviewIntent =
-    /(interview|job|career|entretien|poste|travail|trabajo|naukri|مقابلة|وظيفة|عمل)/i.test(textLower);
-  const isDontUnderstand =
-    /^(i don't understand|i do not understand|je ne comprends pas|could you repeat|pardon|i didn't understand|لا أفهم|لم أفهم)\b/i.test(
-      textLower
-    );
-  const isMeaningInquiry =
-    /^(what does this mean|what do you mean|qu'est-ce que [çc]a veut dire|c'est quoi|what does it mean|ما معنى|ماذا يعني)\b/i.test(
-      textLower
-    );
+  let bundleKey = "general_followup";
 
-  let reply = "";
-  let question = "";
-  let native = "";
-
-  if (isTeaOrCoffee) {
-    const isCoffee = textLower.includes("coffee") || textLower.includes("caf") || textLower.includes("قهوة");
-    if (isArabic) {
-      reply = "بالتأكيد.";
-      question = isCoffee ? "تفضل القهوة، من فضلك." : "تفضل الشاي، من فضلك.";
-      native = isCoffee ? "ज़रूर। यह रही आपकी कॉफ़ी।" : "ज़रूर। यह रहा आपका चाय।";
-    } else if (isFrench) {
-      reply = "Bien sûr.";
-      question = `Un ${isCoffee ? "café" : "thé"}, s'il vous plaît.`;
-      native = `Certainly. One ${isCoffee ? "coffee" : "tea"}, please.`;
-    } else {
-      reply = "Certainly.";
-      question = `Here is your ${isCoffee ? "coffee" : "tea"}.`;
-      native = `Certainly. Here is your ${isCoffee ? "coffee" : "tea"}.`;
-    }
-  } else if (isDontUnderstand) {
+  if (/^(tea\s*(please)?|coffee\s*(please)?|water\s*(please)?|un th[eé]|un caf[eé]|de l'eau)\b/i.test(textLower)) {
+    bundleKey = "tea_or_coffee";
+  } else if (/^(good morning|good afternoon|good evening|hello|hi|hey|bonjour|bonsoir|salut|hola|buenos dias|namaste|صباح|أهلا|مرحبا)/i.test(textLower)) {
+    bundleKey = "greeting";
+  } else if (/^(i'm good|i am good|i'm fine|i am fine|doing well|all good|ça va|ca va|bien|muy bien|theek hu|بخير|الحمد لله|मैं ठीक हूँ)/i.test(textLower)) {
+    bundleKey = "small_talk";
+  } else if (/^(i am tired|i'm tired|fatigué|je suis fatigué|تعبان|أنا متعب|थक गया)/i.test(textLower)) {
+    bundleKey = "tired";
+  } else if (/^(i like football|i love football|j'aime le football|football|كرة القدم|फुटबॉल)/i.test(textLower)) {
+    bundleKey = "football";
+  } else if (/^(i work in marketing|je travaille dans le marketing|marketing|تسويق|التسويق|विपणन)/i.test(textLower)) {
+    bundleKey = "marketing";
+  } else if (/(interview|job|career|entretien|poste|travail|trabajo|naukri|مقابلة|وظيفة|عمل|नौकरी|इंटरव्यू)/i.test(textLower)) {
+    bundleKey = "interview_intent";
+  } else if (/^(i don't understand|i do not understand|je ne comprends pas|could you repeat|pardon|i didn't understand|لا أفهم|لم أفهم|मुझे समझ नहीं आया)\b/i.test(textLower)) {
+    bundleKey = "clarification";
     nextQNum = questionNumber;
-    const lastAi = [...conversationHistory].reverse().find((h) => h.role === "model");
-    const prev = lastAi?.text || "";
-    if (isArabic) {
-      reply = "لا مشكلة.";
-      question = prev
-        ? `سأعيد صياغة ذلك بشكل أبسط: "${prev}". هل هذا أوضح؟`
-        : "سأوضح ذلك بشكل أبسط من أجلك.";
-      native = "कोई बात नहीं, मैं इसे और सरल तरीके से समझाता हूँ।";
-    } else if (isFrench) {
-      reply = "Pas de problème.";
-      question = prev
-        ? `Je reformule plus simplement : "${prev}". Est-ce plus clair pour vous ?`
-        : "Je vais reformuler plus simplement pour vous.";
-      native = "No problem, let me rephrase that more simply.";
-    } else {
-      reply = "No problem.";
-      question = prev
-        ? `Let me rephrase that more simply: "${prev}". Does that make sense?`
-        : "Let me explain that more simply for you.";
-      native = "No problem, let me rephrase that more simply.";
-    }
-  } else if (isMeaningInquiry) {
-    nextQNum = questionNumber;
-    const lastAi = [...conversationHistory].reverse().find((h) => h.role === "model");
-    const prev = lastAi?.text || "";
-    if (isArabic) {
-      reply = "المعنى هو:";
-      question = prev ? `معنى ذلك: "${prev}".` : "هذا هو المعنى.";
-      native = prev ? `इसका अर्थ है: "${prev}"` : "यहाँ इसका अर्थ है।";
-    } else if (sourceLanguage === "French") {
-      reply = "Voici l'explication :";
-      question = `En français, cela signifie : "${prev}".`;
-      native = "Explication de la phrase en français.";
-    } else if (sourceLanguage === "English") {
-      reply = "Here is the meaning:";
-      question = `In English, that means: "${prev}".`;
-      native = `Meaning of "${prev}" in English`;
-    } else {
-      reply = "अर्थ यह है:";
-      question = `इसका मतलब है: "${prev}"`;
-      native = `Meaning in ${sourceLanguage}`;
-    }
-  } else if (isTired) {
-    if (isArabic) {
-      reply = "يؤسفني سماع ذلك.";
-      question = "هل ترغب في أخذ استراحة قصيرة؟";
-      native = "मुझे यह सुनकर दुख हुआ। क्या आप थोड़ा आराम लेना चाहेंगे?";
-    } else if (isFrench) {
-      reply = "Je suis désolé de l'entendre.";
-      question = "Vous voulez faire une petite pause ?";
-      native = "I'm sorry to hear that. Would you like to take a short break?";
-    } else {
-      reply = "I'm sorry to hear that.";
-      question = "Would you like to take a short break?";
-      native = "I'm sorry to hear that. Would you like to take a short break?";
-    }
-  } else if (isFootball) {
-    if (isArabic) {
-      reply = "أنا أيضاً أحب الحديث عن كرة القدم.";
-      question = "ما هو فريقك المفضل؟";
-      native = "मुझे भी फ़ुटबॉल के बारे में बात करना पसंद है। आपकी पसंदीदा टीम कौन सी है?";
-    } else if (isFrench) {
-      reply = "J'aime aussi parler de football.";
-      question = "Quelle équipe aimez-vous ?";
-      native = "I also enjoy talking about football. Which team do you like?";
-    } else {
-      reply = "I also enjoy talking about football.";
-      question = "Which team do you like?";
-      native = "I also enjoy talking about football. Which team do you like?";
-    }
-  } else if (isMarketing) {
-    if (isArabic) {
-      reply = "هذا مجال ممتع للغاية.";
-      question = "ما هو نوع التسويق الذي تعمل به؟";
-      native = "यह बहुत ही दिलचस्प क्षेत्र है। आप किस प्रकार के विपणन में काम करते हैं?";
-    } else if (isFrench) {
-      reply = "C'est un domaine très dynamique.";
-      question = "Quel type de marketing faites-vous ?";
-      native = "That's a very dynamic field. What type of marketing do you do?";
-    } else {
-      reply = "That is a very dynamic field.";
-      question = "What type of marketing do you do?";
-      native = "That is a very dynamic field. What type of marketing do you do?";
-    }
-  } else if (isGreeting) {
-    if (isArabic) {
-      reply = "صباح الخير،";
-      question = "كيف حالك اليوم؟";
-      native = "सुप्रभात, आज आप कैसे हैं?";
-    } else if (isFrench) {
-      reply = "Bonjour ! C'est un plaisir de vous rencontrer.";
-      question = "Comment allez-vous aujourd'hui ?";
-      native = "नमस्ते! आपसे मिलकर अच्छा लगा। आज आप कैसे हैं?";
-    } else {
-      reply = "Good morning! It's nice to meet you.";
-      question = "How are you doing today?";
-      native = "शुभ प्रभात! आपसे मिलकर अच्छा लगा। आज आप कैसे हैं?";
-    }
-  } else if (isSmallTalk) {
-    if (isArabic) {
-      reply = "يسعدني سماع ذلك!";
-      question = "كيف يمكنني مساعدتك اليوم؟";
-      native = "यह सुनकर बहुत अच्छा लगा! आज मैं आपकी क्या मदद कर सकता हूँ?";
-    } else if (isFrench) {
-      reply = "Ravi de l'entendre !";
-      question = "Comment puis-je vous aider aujourd'hui ?";
-      native = "यह सुनकर अच्छा लगा! आज मैं आपकी क्या मदद कर सकता हूँ?";
-    } else {
-      reply = "That's great to hear!";
-      question = "How can I help you today?";
-      native = "यह सुनकर बहुत अच्छा लगा! आज मैं आपकी क्या मदद कर सकता हूँ?";
-    }
-  } else if (isInterviewIntent) {
-    if (isArabic) {
-      reply = "أهلاً بك! دعنا نبدأ التدريب على المقابلة الشخصية.";
-      question = "في البداية، هل يمكنك التحدث عن نفسك باختصار؟";
-      native = "स्वागत है! चलिए नौकरी के साक्षात्कार का अभ्यास शुरू करते हैं। संक्षेप में अपना परिचय दीजिए।";
-    } else if (isFrench) {
-      reply = "Bienvenue ! Commençons votre entraînement pour l'entretien d'embauche.";
-      question = "Pour commencer, pouvez-vous vous présenter et décrire brièvement votre parcours ?";
-      native = "स्वागत है! चलिए नौकरी के साक्षात्कार का अभ्यास शुरू करते हैं। संक्षेप में अपना परिचय दीजिए।";
-    } else {
-      reply = "Welcome! Let's get started with your job interview practice.";
-      question = "To begin, could you tell me a little about yourself and your background?";
-      native = "स्वागत है! चलिए नौकरी के साक्षात्कार का अभ्यास शुरू करते हैं। संक्षेप में अपना परिचय दीजिए।";
-    }
-  } else {
-    if (isArabic) {
-      reply = "شكراً لإجابتك.";
-      question = "هل يمكنك إخباري بالمزيد عن ذلك؟";
-      native = "धन्यवाद। क्या आप मुझे इसके बारे में थोड़ा और बता सकते हैं?";
-    } else if (isFrench) {
-      reply = "Merci pour votre réponse.";
-      question = "Pouvez-vous m'en dire un peu plus à ce sujet ?";
-      native = "धन्यवाद। क्या आप मुझे इस बारे में थोड़ा और बता सकते हैं?";
-    } else {
-      reply = "Thank you for sharing that.";
-      question = "Could you tell me a little more about that?";
-      native = "धन्यवाद। क्या आप मुझे इसके बारे में थोड़ा और बता सकते हैं?";
-    }
   }
 
-  const spokenText = `${reply} ${question}`.trim();
-  const pronunciation =
-    isArabic || containsArabic(spokenText)
-      ? getRomanizedPronunciation(spokenText, "ar")
-      : undefined;
+  const bundle = getBundleContent(bundleKey, tgtCode, srcCode);
+  const spokenText = `${bundle.reply} ${bundle.phrase}`.trim();
+  const pronunciation = getRomanizedPronunciation(spokenText, tgtCode);
 
   return {
-    aiReply: reply,
-    targetPhrase: question,
+    aiReply: bundle.reply,
+    targetPhrase: bundle.phrase,
     pronunciation,
-    nativeExplanation:
-      sourceLanguage === "English" && !isArabic ? `${reply} ${question}`.trim() : native,
+    nativeExplanation: bundle.meaning,
     spokenText,
     questionNumber: nextQNum,
     totalQuestions,
@@ -725,11 +577,8 @@ export function getOfflineVoiceFallback(payload: VoiceTurnPayload): VoiceTurnRes
       status,
       whatWentWell: `Polite and natural delivery in ${targetLanguage}.`,
       whatToImprove: `As a ${personality}, I encourage you to expand on your ideas as the conversation develops.`,
-      correctedSentence:
-        userTranscript || (isFrench ? "Bonjour, comment allez-vous ?" : "Good morning, how are you?"),
-      tip: isFrench
-        ? "Utilisez 'vous' de manière constante dans un contexte professionnel."
-        : "Keep speaking clearly and naturally with good confidence.",
+      correctedSentence: userTranscript || bundle.phrase,
+      tip: "Keep speaking clearly and naturally with good confidence.",
       grammarFeedback: "Sentence structure matches the context appropriately.",
       fluencyFeedback: "Good natural conversational rhythm.",
       vocabFeedback: `Appropriate vocabulary for ${difficulty} level.`,
