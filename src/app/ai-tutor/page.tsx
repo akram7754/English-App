@@ -395,7 +395,7 @@ export default function AITutorPage() {
     try {
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
-      recognition.lang = targetLang.sttLang || "en-US";
+      recognition.lang = sourceLang.sttLang || "en-US";
       recognition.continuous = false;
       recognition.interimResults = false;
 

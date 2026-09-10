@@ -446,7 +446,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
       ...prev,
       {
         id: `tr-${++idCounterRef.current}`,
-        speaker: isFromVoice ? `You (${targetLang.name})` : `You (${targetLang.name} Text)`,
+        speaker: isFromVoice ? `You (${sourceLang.name})` : `You (${sourceLang.name} Text)`,
         text: cleanText,
       },
     ]);
@@ -607,7 +607,7 @@ export default function VoiceConversationClient({ initialUserProfile, isAdmin = 
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
-      recognition.lang = targetLang.sttLang || "en-US";
+      recognition.lang = sourceLang.sttLang || "en-US";
       recognition.continuous = false;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
