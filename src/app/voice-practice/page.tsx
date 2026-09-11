@@ -400,8 +400,8 @@ export default function VoicePracticePage() {
           </div>
 
           {/* Selector Bar: Target Language, My Language, Level, Change Button */}
-          <div className="bg-[#11162A] border border-[#1E2640] p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4 text-xs">
+          <div className="bg-[#11162A] border border-[#1E2640] p-3 sm:px-4 py-2.5 rounded-xl shadow-xl flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3 text-xs">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-400">Target Language</span>
                 <select
@@ -418,7 +418,7 @@ export default function VoicePracticePage() {
                     setEvaluation(null);
                     setTranscribedText("");
                   }}
-                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-xl px-3 py-2 font-bold text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-lg px-2.5 py-1.5 font-bold text-xs text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                 >
                   {SUPPORTED_LANGUAGES.map((lang) => (
                     <option key={lang.code} value={lang.code} disabled={lang.code === sourceLangCode}>
@@ -446,7 +446,7 @@ export default function VoicePracticePage() {
                     }
                     setSourceLangCode(newCode);
                   }}
-                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-xl px-3 py-2 font-bold text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-lg px-2.5 py-1.5 font-bold text-xs text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                 >
                   {SUPPORTED_LANGUAGES.map((lang) => (
                     <option key={lang.code} value={lang.code} disabled={lang.code === targetLangCode}>
@@ -467,7 +467,7 @@ export default function VoicePracticePage() {
                     setEvaluation(null);
                     setTranscribedText("");
                   }}
-                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-xl px-3 py-2 font-bold text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-lg px-2.5 py-1.5 font-bold text-xs text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                 >
                   <option value="Beginner">Beginner</option>
                   <option value="Intermediate">Intermediate</option>
@@ -478,7 +478,7 @@ export default function VoicePracticePage() {
 
             <button
               onClick={() => handleNextPhrase()}
-              className="px-4 py-2 rounded-xl bg-[#1D274A] hover:bg-[#283664] border border-[#2D3D72] text-xs font-bold text-white transition flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-[#1D274A] hover:bg-[#283664] border border-[#2D3D72] text-xs font-bold text-white transition flex items-center gap-1.5 cursor-pointer"
             >
               <span>➔ Change</span>
             </button>
@@ -487,26 +487,26 @@ export default function VoicePracticePage() {
           {/* Main Layout Grid: Primary Workspace (8 cols) + Right Panel (4 cols) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Primary Workspace Column */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-5">
 
               {/* Celebration Success Banner (When practice completed) */}
-              <div className="relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-[#0D3B36] via-[#0E4740] to-[#0A0D1D] border border-[#16655B] shadow-xl flex flex-wrap items-center justify-between gap-4">
+              <div className="relative overflow-hidden p-4 rounded-xl bg-gradient-to-r from-[#0D3B36] via-[#0E4740] to-[#0A0D1D] border border-[#16655B] shadow-xl flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 z-10">
-                  <div className="w-11 h-11 rounded-2xl bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] text-2xl shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] text-xl shrink-0">
                     ✔
                   </div>
                   <div>
-                    <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
                       Great! You completed the practice!
                     </h3>
-                    <p className="text-xs text-slate-300 mt-0.5">
+                    <p className="text-[11px] text-slate-300 mt-0.5">
                       Here's your AI feedback. Keep practicing to improve!
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 z-10">
-                  <span className="px-3 py-1 rounded-full bg-[#F59E0B]/20 border border-[#F59E0B]/40 text-[#F59E0B] text-xs font-black">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#F59E0B]/20 border border-[#F59E0B]/40 text-[#F59E0B] text-xs font-black">
                     +10 XP
                   </span>
                   <span className="text-xs font-bold text-slate-200">
@@ -516,9 +516,9 @@ export default function VoicePracticePage() {
               </div>
 
               {/* Practice Controls & Recording Card */}
-              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-6 space-y-6">
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-4 sm:p-5 space-y-4">
                 {/* Sentence Prompt Display */}
-                <div className="p-5 rounded-2xl bg-[#0A0D1D] border border-[#1E2640] shadow-inner">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-[#0A0D1D] border border-[#1E2640] shadow-inner">
                   <MultilingualMessageContent
                     text={currentPhrase.targetText}
                     pronunciation={currentPhrase.romanized !== currentPhrase.targetText ? currentPhrase.romanized : undefined}
@@ -531,17 +531,17 @@ export default function VoicePracticePage() {
                 </div>
 
                 {/* Controls Bar & Wave animation */}
-                <div className="flex flex-col items-center justify-center py-2 space-y-4">
+                <div className="flex flex-col items-center justify-center py-1 space-y-3">
                   {/* Waveform Animation */}
-                  <div className="h-10 flex items-center justify-center gap-1.5 w-full max-w-xs bg-[#0A0D1D] p-2 rounded-2xl border border-[#1E2640]">
+                  <div className="h-7 flex items-center justify-center gap-1.5 w-full max-w-xs bg-[#0A0D1D] py-1 px-3 rounded-xl border border-[#1E2640]">
                     {isRecording ? (
                       <>
+                        <span className="w-1.5 bg-[#6366F1] rounded-full animate-pulse h-3" />
+                        <span className="w-1.5 bg-[#8B5CF6] rounded-full animate-pulse h-6" />
+                        <span className="w-1.5 bg-[#EC4899] rounded-full animate-pulse h-7" />
                         <span className="w-1.5 bg-[#6366F1] rounded-full animate-pulse h-4" />
-                        <span className="w-1.5 bg-[#8B5CF6] rounded-full animate-pulse h-8" />
-                        <span className="w-1.5 bg-[#EC4899] rounded-full animate-pulse h-10" />
-                        <span className="w-1.5 bg-[#6366F1] rounded-full animate-pulse h-5" />
-                        <span className="w-1.5 bg-[#8B5CF6] rounded-full animate-pulse h-7" />
-                        <span className="w-1.5 bg-[#10B981] rounded-full animate-pulse h-4" />
+                        <span className="w-1.5 bg-[#8B5CF6] rounded-full animate-pulse h-5" />
+                        <span className="w-1.5 bg-[#10B981] rounded-full animate-pulse h-3" />
                       </>
                     ) : (
                       <div className="w-full h-1 bg-[#1E2640] rounded-full" />
@@ -549,22 +549,22 @@ export default function VoicePracticePage() {
                   </div>
 
                   {/* Buttons */}
-                  <div className="flex flex-wrap items-center justify-center gap-3">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
                     {isRecording ? (
                       <button
                         onClick={stopRecording}
-                        className="px-6 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-rose-600/30 transition cursor-pointer animate-pulse"
+                        className="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-rose-600/30 transition cursor-pointer animate-pulse"
                       >
-                        <span className="w-3 h-3 rounded-sm bg-white" />
+                        <span className="w-2.5 h-2.5 rounded-sm bg-white" />
                         <span>Stop Recording</span>
                       </button>
                     ) : (
                       <button
                         disabled={analyzing}
                         onClick={startRecording}
-                        className="px-7 py-3 rounded-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:opacity-90 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition cursor-pointer disabled:opacity-50"
+                        className="px-5 py-2 rounded-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:opacity-90 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition cursor-pointer disabled:opacity-50"
                       >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -579,7 +579,7 @@ export default function VoicePracticePage() {
                     <button
                       type="button"
                       onClick={() => handlePlayTTS(currentPhrase.targetText)}
-                      className="px-4 py-3 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer"
                     >
                       <span>🔊</span>
                       <span>Listen</span>
@@ -588,7 +588,7 @@ export default function VoicePracticePage() {
                     <button
                       type="button"
                       onClick={() => setIsTypeMode(!isTypeMode)}
-                      className="px-4 py-3 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer"
                     >
                       <span>⌨️</span>
                       <span>{isTypeMode ? "Hide Typing" : "Type Instead"}</span>
@@ -597,7 +597,7 @@ export default function VoicePracticePage() {
                     <button
                       type="button"
                       onClick={handleNextPhrase}
-                      className="px-4 py-3 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs sm:text-sm transition cursor-pointer"
+                      className="px-3.5 py-2 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs transition cursor-pointer"
                     >
                       Next ➔
                     </button>
