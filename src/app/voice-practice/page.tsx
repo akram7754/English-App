@@ -373,25 +373,25 @@ export default function VoicePracticePage() {
 
         <div className="p-4 sm:p-6 lg:p-8 pb-20 sm:pb-24 max-w-[1400px] mx-auto w-full flex-1 space-y-6">
           {/* Top Page Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E2640] pb-5">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-[#241438] border border-[#3E1B63] flex items-center justify-center text-purple-400 text-xl shrink-0 shadow-lg shadow-purple-900/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E2640] pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#241438] border border-[#3E1B63] flex items-center justify-center text-purple-400 text-sm shrink-0 shadow-sm">
                 🎙️
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
                   Voice Speaking & Pronunciation
                 </h1>
-                <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
+                <p className="text-slate-400 text-xs mt-0.5">
                   Speak confidently. Get instant AI feedback. Improve every day.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <button
                 type="button"
                 onClick={() => alert("Read aloud the sentence, listen to native audio, and receive real-time multi-dimensional AI scoring!")}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-[#141C38] hover:bg-[#1C2850] border border-[#253668] text-indigo-300 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#141C38] hover:bg-[#1C2850] border border-[#253668] text-indigo-300 transition cursor-pointer"
               >
                 <span>▶ How It Works?</span>
               </button>
