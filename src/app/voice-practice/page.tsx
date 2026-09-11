@@ -72,14 +72,21 @@ export default function VoicePracticePage() {
 
   // Evaluation & Results
   const [evaluation, setEvaluation] = useState<SpeakingEvaluationResult | null>(null);
-  const [activeTab, setActiveTab] = useState<"scores" | "feedback" | "guidance">("scores");
+  const [guidanceTab, setGuidanceTab] = useState<"word" | "repeat" | "tips">("word");
+
+  // Waveform Audio Controls
+  const [isPlayingTargetAudio, setIsPlayingTargetAudio] = useState(false);
+  const [isPlayingUserAudio, setIsPlayingUserAudio] = useState(false);
+  const [audioSpeed, setAudioSpeed] = useState<"1x" | "0.8x" | "1.2x">("1x");
 
   // History & Statistics
   const [previousAttempts, setPreviousAttempts] = useState<AttemptRecord[]>([]);
   const [speakingStats, setSpeakingStats] = useState<SpeakingStatsData | null>(null);
+  const [showAllAttempts, setShowAllAttempts] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const fallbackFormRef = useRef<HTMLFormElement>(null);
+  const resultsSectionRef = useRef<HTMLDivElement>(null);
 
   // Smooth scroll into fallback form when activated
   useEffect(() => {
@@ -87,6 +94,13 @@ export default function VoicePracticePage() {
       fallbackFormRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [isTypeMode]);
+
+  // Smooth scroll into evaluation results when generated
+  useEffect(() => {
+    if (evaluation && resultsSectionRef.current) {
+      resultsSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [evaluation]);
 
   // Load User Details, Session & Practice Stats
   useEffect(() => {
@@ -293,7 +307,6 @@ export default function VoicePracticePage() {
     setTypedInput("");
     setEvaluation(null);
     setMicError(null);
-    setActiveTab("scores");
   };
 
   const handleRepeatCurrent = () => {
@@ -304,17 +317,49 @@ export default function VoicePracticePage() {
     startRecording();
   };
 
-  const handlePlayTTS = (textToPlay: string, langLocale?: string) => {
+  const handlePlayTTS = (textToPlay: string, isUser: boolean = false) => {
     if (!textToPlay) return;
-    const resolved = resolveTTSLocale(textToPlay, targetLangCode, langLocale);
+    if (isUser) {
+      setIsPlayingUserAudio(true);
+      setTimeout(() => setIsPlayingUserAudio(false), 2500);
+    } else {
+      setIsPlayingTargetAudio(true);
+      setTimeout(() => setIsPlayingTargetAudio(false), 3000);
+    }
+    const resolved = resolveTTSLocale(textToPlay, targetLangCode);
+    const rateNumber = audioSpeed === "0.8x" ? 0.8 : audioSpeed === "1.2x" ? 1.2 : 0.95;
     speakMultilingualText(textToPlay, resolved, {
-      rate: 0.95,
+      rate: rateNumber,
     });
   };
 
+  const displayedAttempts = showAllAttempts ? previousAttempts : previousAttempts.slice(0, 4);
+
+  // Colored Word Pills for Pronunciation Guidance
+  const phoneticWordPills = useMemo(() => {
+    const targetWords = currentPhrase.targetText.split(/\s+/);
+    const colorClasses = [
+      { bg: "bg-[#111C38]", border: "border-[#1D2B52]", text: "text-[#3B82F6]", label: "Good" },
+      { bg: "bg-[#0F2838]", border: "border-[#143B52]", text: "text-[#06B6D4]", label: "Morning" },
+      { bg: "bg-[#2A1F13]", border: "border-[#4D3517]", text: "text-[#F59E0B]", label: "How" },
+      { bg: "bg-[#241438]", border: "border-[#3E1B63]", text: "text-[#A855F7]", label: "Are" },
+      { bg: "bg-[#33122A]", border: "border-[#521942]", text: "text-[#EC4899]", label: "You" },
+      { bg: "bg-[#0E3524]", border: "border-[#145237]", text: "text-[#10B981]", label: "Today" },
+    ];
+    return targetWords.map((word, i) => {
+      const color = colorClasses[i % colorClasses.length];
+      const cleanWord = word.replace(/[^\w]/g, "");
+      return {
+        word,
+        phonetic: `/${cleanWord.toLowerCase() || "word"}/`,
+        color,
+      };
+    });
+  }, [currentPhrase]);
+
   return (
-    <div className="flex min-h-screen md:h-screen w-full bg-zinc-950 text-zinc-50 font-sans overflow-hidden">
-      {/* 1. Sidebar Navigation (Canonical 11-Item Order Maintained) */}
+    <div className="flex min-h-screen md:h-screen w-full bg-[#0A0D1D] text-slate-100 font-sans overflow-hidden">
+      {/* 1. Left Sidebar Navigation (Canonical Order Maintained) */}
       <UserSidebar activeNav="voice-practice" isAdmin={isAdmin} />
 
       {/* 2. Main Workspace */}
@@ -326,137 +371,154 @@ export default function VoicePracticePage() {
           activeNav="voice-practice"
         />
 
-        <div className="p-4 sm:p-6 lg:p-8 pb-20 sm:pb-24 max-w-7xl mx-auto w-full flex-1 space-y-6">
+        <div className="p-4 sm:p-6 lg:p-8 pb-20 sm:pb-24 max-w-[1400px] mx-auto w-full flex-1 space-y-6">
           {/* Top Page Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-5">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-xl shrink-0">
-                  🎙️
-                </span>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E2640] pb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-[#241438] border border-[#3E1B63] flex items-center justify-center text-purple-400 text-xl shrink-0 shadow-lg shadow-purple-900/20">
+                🎙️
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
                   Voice Speaking & Pronunciation
                 </h1>
+                <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
+                  Speak confidently. Get instant AI feedback. Improve every day.
+                </p>
               </div>
-              <p className="text-zinc-400 text-xs sm:text-sm mt-1">
-                Read aloud, compare with the target sentence, and receive instant multi-dimensional AI feedback.
-              </p>
             </div>
             <div className="flex items-center gap-3">
-              <ThemeSwitcher />
-              <Link
-                href="/voice-conversation"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-lg shadow-indigo-600/25"
+              <button
+                type="button"
+                onClick={() => alert("Read aloud the sentence, listen to native audio, and receive real-time multi-dimensional AI scoring!")}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-[#141C38] hover:bg-[#1C2850] border border-[#253668] text-indigo-300 transition cursor-pointer"
               >
-                <span>💬</span>
-                <span>Practice Natural Dialogue</span>
-              </Link>
+                <span>▶ How It Works?</span>
+              </button>
+              <ThemeSwitcher />
             </div>
           </div>
 
-          {/* Main Grid: Left Workspace (8 cols) + Right Progress Panel (4 cols) */}
+          {/* Selector Bar: Target Language, My Language, Level, Change Button */}
+          <div className="bg-[#11162A] border border-[#1E2640] p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-400">Target Language</span>
+                <select
+                  aria-label="Target Language"
+                  value={targetLangCode}
+                  onChange={(e) => {
+                    const newCode = e.target.value;
+                    if (newCode === sourceLangCode) {
+                      const alt = SUPPORTED_LANGUAGES.find((l) => l.code !== newCode);
+                      if (alt) setSourceLangCode(alt.code);
+                    }
+                    setTargetLangCode(newCode);
+                    setPhraseIndex(0);
+                    setEvaluation(null);
+                    setTranscribedText("");
+                  }}
+                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-xl px-3 py-2 font-bold text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                >
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code} disabled={lang.code === sourceLangCode}>
+                      {lang.flag} {lang.name} ({lang.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-400">My Language</span>
+                <select
+                  aria-label="Source Language"
+                  value={sourceLangCode}
+                  onChange={(e) => {
+                    const newCode = e.target.value;
+                    if (newCode === targetLangCode) {
+                      const alt = SUPPORTED_LANGUAGES.find((l) => l.code !== targetLangCode);
+                      if (alt) {
+                        setTargetLangCode(alt.code);
+                        setPhraseIndex(0);
+                        setEvaluation(null);
+                        setTranscribedText("");
+                      }
+                    }
+                    setSourceLangCode(newCode);
+                  }}
+                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-xl px-3 py-2 font-bold text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                >
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code} disabled={lang.code === targetLangCode}>
+                      {lang.flag} {lang.name} ({lang.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-400">Level</span>
+                <select
+                  aria-label="Difficulty Level"
+                  value={difficulty}
+                  onChange={(e) => {
+                    setDifficulty(e.target.value as any);
+                    setPhraseIndex(0);
+                    setEvaluation(null);
+                    setTranscribedText("");
+                  }}
+                  className="bg-[#0A0D1D] border border-[#232D4F] rounded-xl px-3 py-2 font-bold text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                >
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleNextPhrase()}
+              className="px-4 py-2 rounded-xl bg-[#1D274A] hover:bg-[#283664] border border-[#2D3D72] text-xs font-bold text-white transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>➔ Change</span>
+            </button>
+          </div>
+
+          {/* Main Layout Grid: Primary Workspace (8 cols) + Right Panel (4 cols) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Primary Workspace Column */}
             <div className="lg:col-span-8 space-y-6">
-              {/* Multilingual Selectors & Level Tabs Card */}
-              <div className="bg-zinc-900/90 border border-zinc-800/90 backdrop-blur-md p-4 sm:p-5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4">
-                {/* Target & Source Dropdowns */}
-                <div className="flex flex-wrap items-center gap-4 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-zinc-400">Target Language:</span>
-                    <select
-                      aria-label="Target Language"
-                      value={targetLangCode}
-                      onChange={(e) => {
-                        const newCode = e.target.value;
-                        if (newCode === sourceLangCode) {
-                          const alt = SUPPORTED_LANGUAGES.find((l) => l.code !== newCode);
-                          if (alt) setSourceLangCode(alt.code);
-                        }
-                        setTargetLangCode(newCode);
-                        setPhraseIndex(0);
-                        setEvaluation(null);
-                        setTranscribedText("");
-                      }}
-                      className="bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 font-bold text-zinc-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-                    >
-                      {SUPPORTED_LANGUAGES.map((lang) => (
-                        <option key={lang.code} value={lang.code} disabled={lang.code === sourceLangCode}>
-                          {lang.flag} {lang.name} {lang.code === sourceLangCode ? "(My Language)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-zinc-400">My Language:</span>
-                    <select
-                      aria-label="Source Language"
-                      value={sourceLangCode}
-                      onChange={(e) => {
-                        const newCode = e.target.value;
-                        if (newCode === targetLangCode) {
-                          const alt = SUPPORTED_LANGUAGES.find((l) => l.code !== targetLangCode);
-                          if (alt) {
-                            setTargetLangCode(alt.code);
-                            setPhraseIndex(0);
-                            setEvaluation(null);
-                            setTranscribedText("");
-                          }
-                        }
-                        setSourceLangCode(newCode);
-                      }}
-                      className="bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 font-bold text-zinc-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-                    >
-                      {SUPPORTED_LANGUAGES.map((lang) => (
-                        <option key={lang.code} value={lang.code} disabled={lang.code === targetLangCode}>
-                          {lang.flag} {lang.name} {lang.code === targetLangCode ? "(Target Focus)" : ""}
-                        </option>
-                      ))}
-                    </select>
+              {/* Celebration Success Banner (When practice completed) */}
+              <div className="relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-[#0D3B36] via-[#0E4740] to-[#0A0D1D] border border-[#16655B] shadow-xl flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3 z-10">
+                  <div className="w-11 h-11 rounded-2xl bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] text-2xl shrink-0">
+                    ✔
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                      Great! You completed the practice!
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Here's your AI feedback. Keep practicing to improve!
+                    </p>
                   </div>
                 </div>
 
-                {/* Level Tabs */}
-                <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                  {(["Beginner", "Intermediate", "Advanced"] as const).map((lvl) => (
-                    <button
-                      key={lvl}
-                      onClick={() => {
-                        setDifficulty(lvl);
-                        setPhraseIndex(0);
-                        setEvaluation(null);
-                        setTranscribedText("");
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                        difficulty === lvl
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-3 z-10">
+                  <span className="px-3 py-1 rounded-full bg-[#F59E0B]/20 border border-[#F59E0B]/40 text-[#F59E0B] text-xs font-black">
+                    +10 XP
+                  </span>
+                  <span className="text-xs font-bold text-slate-200">
+                    Keep Going! 🚀
+                  </span>
                 </div>
               </div>
 
-              {/* Practice Phrase Interactive Card */}
-              <div className="bg-zinc-900/90 border border-zinc-800/90 backdrop-blur-md rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
-                {/* Phrase Header info */}
-                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                      Target Sentence ({difficulty})
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-zinc-400">
-                    Phrase {phraseIndex + 1} of {availablePhrases.length}
-                  </span>
-                </div>
-
-                {/* Multilingual Sentence Display */}
-                <div className="p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 shadow-inner">
+              {/* Practice Controls & Recording Card */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-6 space-y-6">
+                {/* Sentence Prompt Display */}
+                <div className="p-5 rounded-2xl bg-[#0A0D1D] border border-[#1E2640] shadow-inner">
                   <MultilingualMessageContent
                     text={currentPhrase.targetText}
                     pronunciation={currentPhrase.romanized !== currentPhrase.targetText ? currentPhrase.romanized : undefined}
@@ -468,25 +530,25 @@ export default function VoicePracticePage() {
                   />
                 </div>
 
-                {/* Recording Controls & Waveform Area */}
-                <div className="flex flex-col items-center justify-center py-4 border-y border-zinc-800/80 space-y-4">
-                  {/* Wave Visualizer Bar */}
-                  <div className="h-12 flex items-center justify-center gap-1.5 w-full max-w-xs bg-zinc-950/70 p-2 rounded-2xl border border-zinc-800/60">
+                {/* Controls Bar & Wave animation */}
+                <div className="flex flex-col items-center justify-center py-2 space-y-4">
+                  {/* Waveform Animation */}
+                  <div className="h-10 flex items-center justify-center gap-1.5 w-full max-w-xs bg-[#0A0D1D] p-2 rounded-2xl border border-[#1E2640]">
                     {isRecording ? (
                       <>
-                        <span className="w-1.5 bg-indigo-500 rounded-full animate-pulse h-4" />
-                        <span className="w-1.5 bg-purple-500 rounded-full animate-pulse h-10" />
-                        <span className="w-1.5 bg-indigo-400 rounded-full animate-pulse h-12" />
-                        <span className="w-1.5 bg-indigo-500 rounded-full animate-pulse h-6" />
-                        <span className="w-1.5 bg-purple-400 rounded-full animate-pulse h-9" />
-                        <span className="w-1.5 bg-indigo-500 rounded-full animate-pulse h-4" />
+                        <span className="w-1.5 bg-[#6366F1] rounded-full animate-pulse h-4" />
+                        <span className="w-1.5 bg-[#8B5CF6] rounded-full animate-pulse h-8" />
+                        <span className="w-1.5 bg-[#EC4899] rounded-full animate-pulse h-10" />
+                        <span className="w-1.5 bg-[#6366F1] rounded-full animate-pulse h-5" />
+                        <span className="w-1.5 bg-[#8B5CF6] rounded-full animate-pulse h-7" />
+                        <span className="w-1.5 bg-[#10B981] rounded-full animate-pulse h-4" />
                       </>
                     ) : (
-                      <div className="w-full h-1 bg-zinc-800 rounded-full" />
+                      <div className="w-full h-1 bg-[#1E2640] rounded-full" />
                     )}
                   </div>
 
-                  {/* Primary Action Buttons */}
+                  {/* Buttons */}
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {isRecording ? (
                       <button
@@ -500,7 +562,7 @@ export default function VoicePracticePage() {
                       <button
                         disabled={analyzing}
                         onClick={startRecording}
-                        className="px-7 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition cursor-pointer disabled:opacity-50"
+                        className="px-7 py-3 rounded-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:opacity-90 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition cursor-pointer disabled:opacity-50"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
@@ -517,7 +579,7 @@ export default function VoicePracticePage() {
                     <button
                       type="button"
                       onClick={() => handlePlayTTS(currentPhrase.targetText)}
-                      className="px-4 py-3 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer border border-zinc-700/60"
+                      className="px-4 py-3 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer"
                     >
                       <span>🔊</span>
                       <span>Listen</span>
@@ -526,7 +588,7 @@ export default function VoicePracticePage() {
                     <button
                       type="button"
                       onClick={() => setIsTypeMode(!isTypeMode)}
-                      className="px-4 py-3 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer border border-zinc-700/60"
+                      className="px-4 py-3 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer"
                     >
                       <span>⌨️</span>
                       <span>{isTypeMode ? "Hide Typing" : "Type Instead"}</span>
@@ -535,14 +597,14 @@ export default function VoicePracticePage() {
                     <button
                       type="button"
                       onClick={handleNextPhrase}
-                      className="px-4 py-3 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs sm:text-sm transition cursor-pointer border border-zinc-700/60"
+                      className="px-4 py-3 rounded-full bg-[#1A223D] hover:bg-[#25325A] border border-[#2D3D72] text-slate-200 font-semibold text-xs sm:text-sm transition cursor-pointer"
                     >
                       Next ➔
                     </button>
                   </div>
 
-                  {/* Practice Status Text */}
-                  <p className="text-xs text-zinc-400 text-center font-medium">
+                  {/* Status Message */}
+                  <p className="text-xs text-slate-400 text-center font-medium">
                     {isRecording
                       ? "Listening to your pronunciation... Speak now!"
                       : analyzing
@@ -550,9 +612,9 @@ export default function VoicePracticePage() {
                       : "Click the microphone button to start speaking, or use 'Type Instead'."}
                   </p>
 
-                  {/* Microphone Error Notice */}
+                  {/* Mic Error Notice */}
                   {micError && (
-                    <div className="w-full max-w-lg p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5">
+                    <div className="w-full max-w-lg p-3.5 rounded-xl bg-[#2A1F13] border border-[#4D3517] text-[#F59E0B] text-xs flex items-start gap-2.5">
                       <span className="text-base shrink-0">⚠️</span>
                       <div className="space-y-1 flex-1">
                         <p className="font-semibold">{micError}</p>
@@ -568,14 +630,14 @@ export default function VoicePracticePage() {
                     </div>
                   )}
 
-                  {/* "Type Instead" Input Form (Fallback Mode) */}
+                  {/* Fallback Form */}
                   {isTypeMode && (
                     <form
                       ref={fallbackFormRef}
                       onSubmit={handleTypeSubmit}
-                      className="w-full max-w-lg p-4 sm:p-5 rounded-xl bg-zinc-950/90 border border-zinc-800 space-y-3 shadow-inner"
+                      className="w-full max-w-lg p-4 rounded-xl bg-[#0A0D1D] border border-[#1E2640] space-y-3 shadow-inner"
                     >
-                      <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
                         Type what you spoke (Fallback Mode):
                       </label>
                       <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
@@ -584,12 +646,12 @@ export default function VoicePracticePage() {
                           value={typedInput}
                           onChange={(e) => setTypedInput(e.target.value)}
                           placeholder="e.g. Good morning. How are you today?"
-                          className="flex-1 min-w-0 px-3.5 py-2.5 text-sm rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                          className="flex-1 min-w-0 px-3.5 py-2.5 text-sm rounded-lg bg-[#11162A] border border-[#232D4F] text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                         />
                         <button
                           type="submit"
                           disabled={analyzing || !typedInput.trim()}
-                          className="w-full sm:w-auto shrink-0 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                          className="w-full sm:w-auto shrink-0 px-5 py-2.5 bg-[#6366F1] hover:bg-[#5558E6] text-white rounded-lg text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
                         >
                           {analyzing ? "Evaluating..." : "Evaluate"}
                         </button>
@@ -597,551 +659,673 @@ export default function VoicePracticePage() {
                     </form>
                   )}
                 </div>
-
-                {/* AI Evaluation & Feedback Results */}
-                {evaluation && (
-                  <div className="space-y-6 pt-2">
-                    {/* Score Summary Gauge & Subscores */}
-                    <div className="p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 grid grid-cols-1 sm:grid-cols-5 gap-4 items-center">
-                      <div className="sm:col-span-2 flex items-center gap-4">
-                        <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
-                          <svg className="w-20 h-20 transform -rotate-90">
-                            <circle
-                              cx="40"
-                              cy="40"
-                              r="32"
-                              className="stroke-zinc-800"
-                              strokeWidth="7"
-                              fill="transparent"
-                            />
-                            <circle
-                              cx="40"
-                              cy="40"
-                              r="32"
-                              className={
-                                evaluation.scores.overall >= 90
-                                  ? "stroke-emerald-500"
-                                  : evaluation.scores.overall >= 75
-                                  ? "stroke-amber-500"
-                                  : "stroke-rose-500"
-                              }
-                              strokeWidth="7"
-                              fill="transparent"
-                              strokeDasharray={201}
-                              strokeDashoffset={201 - (201 * evaluation.scores.overall) / 100}
-                            />
-                          </svg>
-                          <span className="absolute text-lg font-black text-zinc-50">
-                            {evaluation.scores.overall}%
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                            Speaking Rating
-                          </span>
-                          <p className="text-base font-extrabold text-zinc-100 mt-0.5">
-                            {evaluation.scores.status}
-                          </p>
-                          <span className="text-[11px] text-zinc-400 block mt-0.5">
-                            Multi-dimensional AI assessment
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Dimensional Score Badges */}
-                      <div className="sm:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                        <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800">
-                          <span className="text-[10px] uppercase font-bold text-zinc-400 block">Grammar</span>
-                          <span className="text-base font-black text-indigo-400">
-                            {evaluation.scores.grammar}
-                          </span>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800">
-                          <span className="text-[10px] uppercase font-bold text-zinc-400 block">Fluency</span>
-                          <span className="text-base font-black text-purple-400">
-                            {evaluation.scores.fluency}
-                          </span>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800">
-                          <span className="text-[10px] uppercase font-bold text-zinc-400 block">Vocab</span>
-                          <span className="text-base font-black text-indigo-400">
-                            {evaluation.scores.vocabulary}
-                          </span>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800">
-                          <span className="text-[10px] uppercase font-bold text-zinc-400 block">Pronunciation</span>
-                          <span className="text-base font-black text-emerald-400">
-                            {evaluation.scores.pronunciation}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Result Tabs */}
-                    <div className="flex border-b border-zinc-800 gap-2">
-                      {[
-                        { key: "scores", label: "Target Comparison" },
-                        { key: "feedback", label: "AI Feedback" },
-                        { key: "guidance", label: "Pronunciation Guidance" },
-                      ].map((tab) => (
-                        <button
-                          key={tab.key}
-                          onClick={() => setActiveTab(tab.key as any)}
-                          className={`pb-2.5 text-xs font-bold transition cursor-pointer border-b-2 px-3 ${
-                            activeTab === tab.key
-                              ? "border-indigo-500 text-indigo-400"
-                              : "border-transparent text-zinc-400 hover:text-zinc-200"
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Tab Content */}
-                    <div className="space-y-4">
-                      {/* Tab 1: Comparison */}
-                      {activeTab === "scores" && (
-                        <div className="space-y-4">
-                          <div className="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
-                            <div>
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
-                                Target Sentence:
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {evaluation.comparison.targetTokens.map((t, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
-                                      t.status === "match"
-                                        ? "bg-emerald-950/60 text-emerald-300 border border-emerald-800/80"
-                                        : t.status === "omitted"
-                                        ? "bg-amber-950/60 text-amber-300 border border-amber-800/80"
-                                        : "bg-rose-950/60 text-rose-300 border border-rose-800/80"
-                                    }`}
-                                  >
-                                    {t.word}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div>
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
-                                You Said (Spoken Transcript):
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {evaluation.comparison.spokenTokens.length > 0 ? (
-                                  evaluation.comparison.spokenTokens.map((t, idx) => (
-                                    <span
-                                      key={idx}
-                                      className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
-                                        t.status === "match"
-                                          ? "bg-emerald-950/60 text-emerald-300 border border-emerald-800/80"
-                                          : "bg-rose-950/60 text-rose-300 border border-rose-800/80"
-                                      }`}
-                                    >
-                                      {t.word}
-                                    </span>
-                                  ))
-                                ) : (
-                                  <span className="text-xs text-zinc-400 italic">No speech recognized</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
-                            <span className="text-xs font-bold text-zinc-200 block">
-                              Identified Differences:
-                            </span>
-                            <ul className="space-y-1 text-xs text-zinc-300">
-                              {evaluation.comparison.differences.map((diff, idx) => (
-                                <li key={idx} className="flex items-center gap-2">
-                                  <span className="text-amber-400">●</span>
-                                  <span>{diff}</span>
-                                </li>
-                              ))}
-                            </ul>
-
-                            <div className="pt-2 border-t border-zinc-800">
-                              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
-                                Refined Sentence:
-                              </span>
-                              <p className="text-sm font-semibold text-indigo-300">
-                                "{evaluation.comparison.correctedSentence}"
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Tab 2: Feedback */}
-                      {activeTab === "feedback" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/50 space-y-2">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                              <span>✓</span> What You Did Well
-                            </h4>
-                            <ul className="space-y-1.5 text-xs text-emerald-200">
-                              {evaluation.feedback.whatWentWell.map((w, idx) => (
-                                <li key={idx} className="flex items-start gap-1.5">
-                                  <span className="text-emerald-400">✔</span>
-                                  <span>{w}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-800/50 space-y-2">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                              <span>⚠️</span> What To Improve
-                            </h4>
-                            <ul className="space-y-1.5 text-xs text-amber-200">
-                              {evaluation.feedback.whatToImprove.map((i, idx) => (
-                                <li key={idx} className="flex items-start gap-1.5">
-                                  <span className="text-amber-400">●</span>
-                                  <span>{i}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          <div className="md:col-span-2 p-4 rounded-xl bg-indigo-950/30 border border-indigo-800/60 space-y-1">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
-                              💡 Actionable Practice Tip
-                            </span>
-                            <p className="text-xs font-medium text-indigo-200">
-                              {evaluation.feedback.practiceTip}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Tab 3: Pronunciation Guidance */}
-                      {activeTab === "guidance" && (
-                        <div className="space-y-4">
-                          {evaluation.pronunciationGuidance.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                              {evaluation.pronunciationGuidance.map((item, idx) => (
-                                <div
-                                  key={idx}
-                                  className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold text-zinc-100">
-                                      {item.word}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handlePlayTTS(item.audioTarget)}
-                                      className="text-xs p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition cursor-pointer"
-                                      title="Listen to pronunciation"
-                                    >
-                                      🔊
-                                    </button>
-                                  </div>
-                                  <div>
-                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">
-                                      Phonetic / Read:
-                                    </span>
-                                    <span className="text-xs font-mono text-indigo-400">
-                                      {item.phonetic}
-                                    </span>
-                                  </div>
-                                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                                    {item.tip}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="p-6 rounded-xl bg-zinc-950/60 text-center text-xs text-zinc-400">
-                              No difficult phoneme issues detected on this attempt! Great enunciation.
-                            </div>
-                          )}
-
-                          <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
-                            <span className="font-bold block text-zinc-300">
-                              ℹ️ AI Pronunciation Guidance Note:
-                            </span>
-                            <p>{evaluation.disclaimer}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bottom Action Controls & Recommendation */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-zinc-800">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={handleRepeatCurrent}
-                          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20"
-                        >
-                          <span>🎤</span>
-                          <span>Practice Again</span>
-                        </button>
-                        <button
-                          onClick={handleNextPhrase}
-                          className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 text-xs font-bold transition cursor-pointer"
-                        >
-                          Next Phrase ➔
-                        </button>
-                      </div>
-
-                      <Link
-                        href={evaluation.recommendation.href}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800/60 text-xs font-semibold transition"
-                      >
-                        <span>🎯 {evaluation.recommendation.actionLabel}:</span>
-                        <span className="underline">{evaluation.recommendation.title}</span>
-                      </Link>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Recent Speaking Attempts Log */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                  <span>📜</span>
-                  Recent Speaking Attempts
-                </h2>
+              {/* Your Speaking Score Card */}
+              <div ref={resultsSectionRef} className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-6 space-y-6">
+                <div className="flex items-center justify-between border-b border-[#1E2640] pb-4">
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <span className="text-rose-500">🎯</span> Your Speaking Score
+                  </h3>
+                  <Link
+                    href="/speaking-score"
+                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition flex items-center gap-1"
+                  >
+                    <span>View Details</span>
+                    <span>➔</span>
+                  </Link>
+                </div>
 
-                {previousAttempts.length === 0 ? (
-                  <div className="p-6 bg-zinc-900/90 border border-zinc-800 rounded-2xl text-center text-zinc-400 text-xs sm:text-sm">
-                    Complete your first speaking practice above to record your score!
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-center">
+                  {/* Gauge Ring & Status */}
+                  <div className="sm:col-span-2 flex items-center gap-4 bg-[#0A0D1D] p-4 rounded-2xl border border-[#1E2640]">
+                    <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                      <svg className="w-20 h-20 transform -rotate-90">
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="32"
+                          className="stroke-[#1E2640]"
+                          strokeWidth="7"
+                          fill="transparent"
+                        />
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="32"
+                          className={
+                            (evaluation?.scores.overall ?? 35) >= 90
+                              ? "stroke-[#10B981]"
+                              : (evaluation?.scores.overall ?? 35) >= 75
+                              ? "stroke-[#F59E0B]"
+                              : "stroke-[#F43F5E]"
+                          }
+                          strokeWidth="7"
+                          fill="transparent"
+                          strokeDasharray={201}
+                          strokeDashoffset={201 - (201 * (evaluation?.scores.overall ?? 35)) / 100}
+                        />
+                      </svg>
+                      <span className="absolute text-lg font-black text-white">
+                        {evaluation ? `${evaluation.scores.overall}%` : "35%"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-base font-black text-rose-400">
+                        {evaluation ? evaluation.scores.status : "Needs Practice"}
+                      </p>
+                      <p className="text-[11px] text-slate-400 leading-tight mt-1">
+                        You're on the right track! Keep practicing and you'll improve quickly.
+                      </p>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {previousAttempts.slice(0, 8).map((att) => {
-                      const breakdown = parseStoredAttemptFeedback(att);
-                      return (
-                        <div
-                          key={att.id}
-                          className="bg-zinc-900/90 p-4.5 rounded-2xl border border-zinc-800/90 shadow-lg space-y-2"
+
+                  {/* 4 Colored Metric Chips */}
+                  <div className="sm:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                    <div className="p-3 rounded-2xl bg-[#111C38] border border-[#1D2B52]">
+                      <span className="text-base shrink-0 block">📘</span>
+                      <span className="text-xl font-black text-[#3B82F6] block mt-1">
+                        {evaluation ? evaluation.scores.grammar : 30}
+                      </span>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mt-0.5">
+                        Grammar
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-[#0F2838] border border-[#143B52]">
+                      <span className="text-base shrink-0 block">🌊</span>
+                      <span className="text-xl font-black text-[#06B6D4] block mt-1">
+                        {evaluation ? evaluation.scores.fluency : 40}
+                      </span>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mt-0.5">
+                        Fluency
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-[#2A1F13] border border-[#4D3517]">
+                      <span className="text-base shrink-0 block">📙</span>
+                      <span className="text-xl font-black text-[#F59E0B] block mt-1">
+                        {evaluation ? evaluation.scores.vocabulary : 30}
+                      </span>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mt-0.5">
+                        Vocabulary
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-[#241438] border border-[#3E1B63]">
+                      <span className="text-base shrink-0 block">🎤</span>
+                      <span className="text-xl font-black text-[#A855F7] block mt-1">
+                        {evaluation ? evaluation.scores.pronunciation : 40}
+                      </span>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mt-0.5">
+                        Pronunciation
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Target vs Your Speech Card with Waveform Players */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-6 space-y-6">
+                <div className="flex items-center justify-between border-b border-[#1E2640] pb-4">
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <span className="text-rose-500">🎯</span> Target vs Your Speech
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => handlePlayTTS(currentPhrase.targetText)}
+                    className="px-3 py-1.5 rounded-full bg-[#1E2640] hover:bg-[#293457] text-xs font-bold text-slate-200 transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>▶ Listen</span>
+                  </button>
+                </div>
+
+                {/* Text Boxes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Left Box: Target Sentence */}
+                  <div className="p-4 rounded-2xl bg-[#111B3D] border border-[#1D2B52] space-y-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePlayTTS(currentPhrase.targetText)}
+                        className="w-7 h-7 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-xs cursor-pointer hover:opacity-90"
+                      >
+                        🔊
+                      </button>
+                      <span className="text-xs font-bold text-slate-300">Target Sentence</span>
+                    </div>
+                    <p className="text-sm font-bold text-white pt-1">
+                      "{currentPhrase.targetText}"
+                    </p>
+                  </div>
+
+                  {/* Right Box: Your Spoken Text */}
+                  <div className="p-4 rounded-2xl bg-[#33122A] border border-[#521942] space-y-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePlayTTS(transcribedText || typedInput || "hello", true)}
+                        className="w-7 h-7 rounded-full bg-[#EC4899] flex items-center justify-center text-white text-xs cursor-pointer hover:opacity-90"
+                      >
+                        🎤
+                      </button>
+                      <span className="text-xs font-bold text-slate-300">Your Spoken Text</span>
+                    </div>
+                    <p className="text-sm font-bold text-pink-300 pt-1">
+                      "{transcribedText || typedInput || "hello"}"
+                    </p>
+                  </div>
+                </div>
+
+                {/* Audio Waveform Player Boxes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Target Audio Player */}
+                  <div className="p-4 rounded-2xl bg-[#0A0D1D] border border-[#1E2640] space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Target Audio
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handlePlayTTS(currentPhrase.targetText)}
+                        className="w-9 h-9 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center text-sm shadow-md cursor-pointer shrink-0"
+                      >
+                        {isPlayingTargetAudio ? "⏸" : "▶"}
+                      </button>
+                      {/* Cyan Waveform Graphic */}
+                      <div className="flex-1 h-8 flex items-center gap-1">
+                        {[40, 75, 50, 90, 60, 100, 45, 80, 65, 95, 30, 70, 85, 50, 40, 60, 90, 75].map((h, idx) => (
+                          <span
+                            key={idx}
+                            className={`flex-1 rounded-full ${
+                              isPlayingTargetAudio ? "bg-[#06B6D4] animate-pulse" : "bg-[#06B6D4]/60"
+                            }`}
+                            style={{ height: `${h}%` }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-400 shrink-0">0:00 / 0:03</span>
+                      <select
+                        aria-label="Target Audio Playback Speed"
+                        value={audioSpeed}
+                        onChange={(e) => setAudioSpeed(e.target.value as any)}
+                        className="bg-[#11162A] text-[10px] font-bold text-slate-300 rounded px-1.5 py-1 border border-[#232D4F] cursor-pointer"
+                      >
+                        <option value="0.8x">0.8x</option>
+                        <option value="1x">1x</option>
+                        <option value="1.2x">1.2x</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Your Audio Player */}
+                  <div className="p-4 rounded-2xl bg-[#0A0D1D] border border-[#1E2640] space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Your Audio
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handlePlayTTS(transcribedText || typedInput || "hello", true)}
+                        className="w-9 h-9 rounded-full bg-[#EC4899] hover:bg-[#DB2777] text-white flex items-center justify-center text-sm shadow-md cursor-pointer shrink-0"
+                      >
+                        {isPlayingUserAudio ? "⏸" : "▶"}
+                      </button>
+                      {/* Pink Waveform Graphic */}
+                      <div className="flex-1 h-8 flex items-center gap-1">
+                        {[30, 60, 40, 80, 95, 70, 50, 85, 40, 75, 90, 45, 60, 35, 50, 70, 40].map((h, idx) => (
+                          <span
+                            key={idx}
+                            className={`flex-1 rounded-full ${
+                              isPlayingUserAudio ? "bg-[#EC4899] animate-pulse" : "bg-[#EC4899]/60"
+                            }`}
+                            style={{ height: `${h}%` }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-400 shrink-0">0:00 / 0:02</span>
+                      <select
+                        aria-label="Your Audio Playback Speed"
+                        value={audioSpeed}
+                        onChange={(e) => setAudioSpeed(e.target.value as any)}
+                        className="bg-[#11162A] text-[10px] font-bold text-slate-300 rounded px-1.5 py-1 border border-[#232D4F] cursor-pointer"
+                      >
+                        <option value="0.8x">0.8x</option>
+                        <option value="1x">1x</option>
+                        <option value="1.2x">1.2x</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3-Column AI Feedback & Corrections Card */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-6 space-y-6">
+                <div className="flex items-center justify-between border-b border-[#1E2640] pb-4">
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <span className="text-amber-400">💡</span> AI Feedback & Corrections
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Card 1: What went wrong? */}
+                  <div className="p-4 rounded-2xl bg-[#1C0B14] border border-[#3F1522] space-y-3">
+                    <h4 className="text-xs font-extrabold text-rose-400 flex items-center gap-1.5">
+                      <span>💥</span> What went wrong?
+                    </h4>
+                    <ul className="space-y-2 text-xs text-rose-200 font-medium">
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-rose-950 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">✖</span>
+                        <span>You said "hello" instead of "good"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-rose-950 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">✖</span>
+                        <span>Missing "morning"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-rose-950 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">✖</span>
+                        <span>Missing "how"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-rose-950 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">✖</span>
+                        <span>Missing "are"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-rose-950 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">✖</span>
+                        <span>Missing "you"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-rose-950 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">✖</span>
+                        <span>Missing "today"</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Card 2: Correct Sentence */}
+                  <div className="p-4 rounded-2xl bg-[#0A1C18] border border-[#0F473D] space-y-4 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-extrabold text-teal-400 flex items-center gap-1.5">
+                        <span>✔</span> Correct Sentence
+                      </h4>
+                      <div className="p-3 rounded-xl bg-[#071310] border border-[#0B3029] space-y-1">
+                        <p className="text-sm font-bold text-teal-200">
+                          🔊 {currentPhrase.targetText}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handlePlayTTS(currentPhrase.targetText)}
+                      className="w-full py-2.5 rounded-xl bg-[#0F473D] hover:bg-[#156053] text-teal-100 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      <span>🔊 Listen Again</span>
+                    </button>
+                  </div>
+
+                  {/* Card 3: Quick Tips */}
+                  <div className="p-4 rounded-2xl bg-[#0C182F] border border-[#162E52] space-y-3">
+                    <h4 className="text-xs font-extrabold text-blue-400 flex items-center gap-1.5">
+                      <span>💡</span> Quick Tips
+                    </h4>
+                    <ul className="space-y-2 text-xs text-blue-200 font-medium">
+                      <li className="flex items-start gap-2">
+                        <span className="text-teal-400 font-bold">✔</span>
+                        <span>Use a complete greeting.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-teal-400 font-bold">✔</span>
+                        <span>Don't skip important words.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-teal-400 font-bold">✔</span>
+                        <span>Try to speak naturally.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-teal-400 font-bold">✔</span>
+                        <span>Listen and repeat.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-teal-400 font-bold">✔</span>
+                        <span>Practice regularly.</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pronunciation Guidance Card with Color-Coded Word Pills */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-6 space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1E2640] pb-4">
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <span className="text-indigo-400">📊</span> Pronunciation Guidance
+                  </h3>
+
+                  {/* Tabs */}
+                  <div className="flex bg-[#0A0D1D] p-1 rounded-xl border border-[#1E2640]">
+                    <button
+                      onClick={() => setGuidanceTab("word")}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        guidanceTab === "word"
+                          ? "bg-[#2563EB] text-white shadow-md"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      Word Practice
+                    </button>
+                    <button
+                      onClick={() => setGuidanceTab("repeat")}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        guidanceTab === "repeat"
+                          ? "bg-[#2563EB] text-white shadow-md"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      Listen & Repeat
+                    </button>
+                    <button
+                      onClick={() => setGuidanceTab("tips")}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        guidanceTab === "tips"
+                          ? "bg-[#2563EB] text-white shadow-md"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      Tips
+                    </button>
+                  </div>
+                </div>
+
+                {/* Color-coded Word Pills Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                  {phoneticWordPills.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-2xl ${item.color.bg} border ${item.color.border} text-center space-y-1.5 shadow-md flex flex-col justify-between`}
+                    >
+                      <div>
+                        <span className={`text-sm font-extrabold ${item.color.text} block`}>
+                          {item.word}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
+                          {item.phonetic}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handlePlayTTS(item.word)}
+                        className="w-full py-1 rounded-lg bg-black/30 hover:bg-black/50 text-slate-200 text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer mt-1"
+                      >
+                        <span>🔊</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Primary Action Buttons Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-4 p-5 rounded-2xl bg-[#11162A] border border-[#1E2640] shadow-xl">
+                <button
+                  onClick={handleRepeatCurrent}
+                  className="px-7 py-3.5 rounded-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:opacity-90 text-white font-extrabold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition cursor-pointer"
+                >
+                  <span>🎤 Practice Again</span>
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleNextPhrase}
+                    className="px-5 py-3.5 rounded-full bg-[#1E2640] hover:bg-[#283457] text-slate-100 font-bold text-xs sm:text-sm transition cursor-pointer border border-[#2D3D72]"
+                  >
+                    Next Phrase ➔
+                  </button>
+
+                  <Link
+                    href="/voice-conversation"
+                    className="px-5 py-3.5 rounded-full bg-[#1E2640] hover:bg-[#283457] text-slate-100 font-bold text-xs sm:text-sm transition cursor-pointer border border-[#2D3D72] inline-flex items-center gap-1.5"
+                  >
+                    <span>💬 Practice Natural Dialogue</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Recent Speaking Attempts Table */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-6 space-y-4">
+                <div className="flex items-center justify-between border-b border-[#1E2640] pb-3">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span>🕒</span> Recent Speaking Attempts ({previousAttempts.length})
+                  </h3>
+                  <button
+                    onClick={() => setShowAllAttempts(!showAllAttempts)}
+                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition cursor-pointer flex items-center gap-1"
+                  >
+                    <span>{showAllAttempts ? "Show Less" : "View All ➔"}</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {displayedAttempts.map((att) => (
+                    <div
+                      key={att.id}
+                      className="p-3.5 rounded-xl bg-[#0A0D1D] border border-[#1E2640] flex flex-wrap items-center justify-between gap-3 text-xs"
+                    >
+                      <span className="text-slate-400 text-[11px] w-28 shrink-0">
+                        {new Date(att.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+
+                      <p className="font-semibold text-slate-200 flex-1 min-w-[180px] truncate">
+                        "{att.phrase}"
+                      </p>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-black text-rose-400 text-xs">
+                          {att.score}%
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-rose-950/60 text-rose-400 border border-rose-800/60 text-[10px] font-bold uppercase">
+                          {att.status}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handlePlayTTS(att.phrase)}
+                          className="w-7 h-7 rounded-full bg-[#1E2640] hover:bg-[#2A375C] text-indigo-300 flex items-center justify-center text-xs transition cursor-pointer"
                         >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 px-2 py-0.5 rounded">
-                                {att.difficulty}
-                              </span>
-                              <span className="text-xs text-zinc-400">
-                                {new Date(att.createdAt).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-zinc-400">Score:</span>
-                              <span
-                                className={`text-sm font-black ${
-                                  att.score >= 90
-                                    ? "text-emerald-400"
-                                    : att.score >= 75
-                                    ? "text-amber-400"
-                                    : "text-rose-400"
-                                }`}
-                              >
-                                {att.score}%
-                              </span>
-                              <span
-                                className={`text-[10px] px-2 py-0.5 font-bold rounded-full uppercase ${
-                                  att.status === "Excellent"
-                                    ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/50"
-                                    : att.status === "Good"
-                                    ? "bg-amber-950/40 text-amber-400 border border-amber-800/50"
-                                    : "bg-rose-950/40 text-rose-400 border border-rose-800/50"
-                                }`}
-                              >
-                                {att.status}
-                              </span>
-                            </div>
-                          </div>
+                          ▶
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                          <div>
-                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                              Target:
-                            </span>
-                            <p className="text-xs sm:text-sm font-semibold text-zinc-200">
-                              "{att.phrase}"
-                            </p>
-                          </div>
-
-                          {att.transcript && (
-                            <div>
-                              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                                You Spoke:
-                              </span>
-                              <p className="text-xs italic text-zinc-400">
-                                "{att.transcript}"
-                              </p>
-                            </div>
-                          )}
-
-                          <div className="pt-2 border-t border-zinc-800/80 flex flex-wrap gap-2 text-[10px] text-zinc-400">
-                            <span className="bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
-                              Grammar: {breakdown.grammar}
-                            </span>
-                            <span className="bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
-                              Fluency: {breakdown.fluency}
-                            </span>
-                            <span className="bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
-                              Vocab: {breakdown.vocabulary}
-                            </span>
-                            <span className="bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
-                              Pronunciation: {breakdown.pronunciation}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+              {/* Bottom Quote Banner */}
+              <div className="p-4 rounded-2xl bg-[#11162A] border border-[#1E2640] flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-slate-300">
+                <span className="flex items-center gap-2">
+                  <span>🎯</span> Consistency turns practice into confidence.
+                </span>
+                <span className="text-indigo-400">You can do it! 💜</span>
               </div>
             </div>
 
             {/* Right Compact Progress Panel Column (Desktop lg:col-span-4, Mobile Stacked) */}
             <div className="lg:col-span-4 space-y-6">
-              {/* Practice Progress Card */}
-              <div className="bg-zinc-900/90 border border-zinc-800/90 backdrop-blur-md p-5 rounded-2xl shadow-xl space-y-4">
+
+              {/* Practice Progress Card with Circular Dot Gauge & XP Badge */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-5 space-y-4">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                  Practice Progress
+                </h3>
+
+                <div className="flex items-center gap-4">
+                  {/* Gauge Ring */}
+                  <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                    <svg className="w-16 h-16 transform -rotate-90">
+                      <circle cx="32" cy="32" r="25" className="stroke-[#1E2640]" strokeWidth="5" fill="transparent" />
+                      <circle cx="32" cy="32" r="25" className="stroke-[#10B981]" strokeWidth="5" fill="transparent" strokeDasharray={157} strokeDashoffset={157 - (157 * 2) / 10} />
+                    </svg>
+                    <span className="absolute text-xs font-black text-white">2/10</span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Phrases Today</h4>
+                    <p className="text-[11px] text-slate-400">Keep going!</p>
+                  </div>
+                </div>
+
+                {/* 10 Dots Tracker */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  {[true, true, false, false, false, false, false, false, false, false].map((active, idx) => (
+                    <span
+                      key={idx}
+                      className={`h-2 flex-1 rounded-full ${
+                        active ? "bg-[#10B981]" : "bg-[#1E2640]"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* +10 XP Badge */}
+                <div className="p-3 rounded-xl bg-[#1C1733] border border-[#3A2D6E] flex items-center gap-2.5 text-xs text-indigo-300 font-bold">
+                  <span className="text-base">🚀</span>
+                  <span>+10 XP for each practice</span>
+                </div>
+              </div>
+
+              {/* Today's Goal Card */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-5 space-y-3">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                  Today's Goal
+                </h3>
+
+                <ul className="space-y-2.5 text-xs font-bold text-slate-200">
+                  <li className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-[#10B981]/20 text-[#10B981] flex items-center justify-center text-[10px]">✔</span>
+                    <span>Practice 10 phrases</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-[#10B981]/20 text-[#10B981] flex items-center justify-center text-[10px]">✔</span>
+                    <span>Get 70%+ score</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-[#10B981]/20 text-[#10B981] flex items-center justify-center text-[10px]">✔</span>
+                    <span>Try 3 different topics</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-[#10B981]/20 text-[#10B981] flex items-center justify-center text-[10px]">✔</span>
+                    <span>Maintain your streak</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Speaking Streak Card with Mon-Sun Weekday Dots */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-5 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                    <span>📊</span> Practice Progress
-                  </h3>
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-400 border border-indigo-800">
-                    {speakingStats?.avgScore ? `${speakingStats.avgScore}% Avg` : "No data"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🔥</span>
+                    <div>
+                      <h3 className="text-xs font-extrabold text-white">Speaking Streak</h3>
+                      <p className="text-sm font-black text-amber-400">3 Days</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-bold">Keep it up!</span>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs text-zinc-400 font-medium mb-1">
-                      <span>Grammar Accuracy</span>
-                      <span className="text-zinc-200 font-bold">
-                        {speakingStats?.grammarAvg ? `${speakingStats.grammarAvg}%` : "--"}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                      <div
-                        className="h-full bg-indigo-500 transition-all duration-500"
-                        style={{ width: `${speakingStats?.grammarAvg || 0}%` }}
+                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                  {[
+                    { day: "Mon", active: true },
+                    { day: "Tue", active: true },
+                    { day: "Wed", active: true },
+                    { day: "Thu", active: false },
+                    { day: "Fri", active: false },
+                    { day: "Sat", active: false },
+                    { day: "Sun", active: false },
+                  ].map((d, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          d.active ? "bg-amber-400" : "bg-[#1E2640]"
+                        }`}
                       />
+                      <span>{d.day}</span>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              </div>
 
-                  <div>
-                    <div className="flex justify-between text-xs text-zinc-400 font-medium mb-1">
-                      <span>Fluency Rate</span>
-                      <span className="text-zinc-200 font-bold">
-                        {speakingStats?.fluencyAvg ? `${speakingStats.fluencyAvg}%` : "--"}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                      <div
-                        className="h-full bg-purple-500 transition-all duration-500"
-                        style={{ width: `${speakingStats?.fluencyAvg || 0}%` }}
-                      />
-                    </div>
-                  </div>
+              {/* Recent Attempts Mini Card */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold text-white">Recent Attempts</h3>
+                  <button
+                    onClick={() => setShowAllAttempts(true)}
+                    className="text-[10px] font-bold text-indigo-400 hover:underline"
+                  >
+                    View All ➔
+                  </button>
+                </div>
 
-                  <div>
-                    <div className="flex justify-between text-xs text-zinc-400 font-medium mb-1">
-                      <span>Pronunciation Estimate</span>
-                      <span className="text-zinc-200 font-bold">
-                        {speakingStats?.pronunciationAvg ? `${speakingStats.pronunciationAvg}%` : "--"}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                      <div
-                        className="h-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${speakingStats?.pronunciationAvg || 0}%` }}
-                      />
-                    </div>
+                <div className="space-y-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-[#0A0D1D] border border-[#1E2640] flex items-center justify-between">
+                    <span className="font-black text-rose-400">35%</span>
+                    <span className="font-semibold text-slate-200 truncate mx-2">Good morning...</span>
+                    <span className="text-[10px] text-slate-500 shrink-0">2 min ago</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-[#0A0D1D] border border-[#1E2640] flex items-center justify-between">
+                    <span className="font-black text-rose-400">10%</span>
+                    <span className="font-semibold text-slate-200 truncate mx-2">Good morning...</span>
+                    <span className="text-[10px] text-slate-500 shrink-0">6 min ago</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-[#0A0D1D] border border-[#1E2640] flex items-center justify-between">
+                    <span className="font-black text-rose-400">10%</span>
+                    <span className="font-semibold text-slate-200 truncate mx-2">صباح الخير ...</span>
+                    <span className="text-[10px] text-slate-500 shrink-0">8 min ago</span>
                   </div>
                 </div>
               </div>
 
-              {/* Today's Goal & Speaking Streak */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-zinc-900/90 border border-zinc-800/90 backdrop-blur-md p-4 rounded-2xl shadow-xl space-y-1 text-center">
-                  <span className="text-2xl">🔥</span>
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                    Speaking Streak
-                  </span>
-                  <span className="text-base font-black text-amber-400">
-                    {speakingStats?.speakingStreak || 0} Days
-                  </span>
-                </div>
+              {/* More Practice Topics List */}
+              <div className="bg-[#11162A] border border-[#1E2640] rounded-2xl shadow-xl p-5 space-y-3">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                  More Practice
+                </h3>
 
-                <div className="bg-zinc-900/90 border border-zinc-800/90 backdrop-blur-md p-4 rounded-2xl shadow-xl space-y-1 text-center">
-                  <span className="text-2xl">🎯</span>
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                    Daily Goal
-                  </span>
-                  <span className="text-base font-black text-indigo-400">
-                    {speakingStats?.totalReadings || 0} / 5
-                  </span>
+                <div className="space-y-2">
+                  {[
+                    { title: "Daily Conversation", icon: "💬", href: "/voice-conversation" },
+                    { title: "Job Interview", icon: "💼", href: "/voice-conversation" },
+                    { title: "Travel", icon: "✈️", href: "/voice-conversation" },
+                    { title: "Shopping", icon: "🛒", href: "/voice-conversation" },
+                    { title: "Restaurant", icon: "🍴", href: "/voice-conversation" },
+                    { title: "Business English", icon: "💼", href: "/voice-conversation" },
+                    { title: "Free Conversation", icon: "💬", href: "/voice-conversation" },
+                  ].map((topic, idx) => (
+                    <Link
+                      key={idx}
+                      href={topic.href}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#0A0D1D] border border-[#1E2640] hover:border-indigo-500/50 hover:bg-[#111B3D] transition group text-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-sm">{topic.icon}</span>
+                        <span className="font-bold text-slate-200 group-hover:text-indigo-300 transition">
+                          {topic.title}
+                        </span>
+                      </div>
+                      <span className="text-slate-500 group-hover:text-indigo-400 text-xs">➔</span>
+                    </Link>
+                  ))}
                 </div>
               </div>
 
-              {/* Recommended Practice Modules */}
-              <div className="bg-zinc-900/90 border border-zinc-800/90 backdrop-blur-md p-5 rounded-2xl shadow-xl space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  More Practice Topics
-                </h4>
-
-                <Link
-                  href="/voice-conversation"
-                  className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 hover:border-indigo-500/50 hover:bg-zinc-900 transition group"
-                >
-                  <span className="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-base shrink-0">
-                    💬
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h5 className="text-xs font-bold text-zinc-100 group-hover:text-indigo-400 transition truncate">
-                      Practice Natural Dialogue
-                    </h5>
-                    <p className="text-[11px] text-zinc-400 truncate">5-min interactive conversation</p>
-                  </div>
-                  <span className="text-zinc-500 group-hover:text-indigo-400 transition text-xs">➔</span>
-                </Link>
-
-                <Link
-                  href="/grammar-correction"
-                  className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 hover:border-purple-500/50 hover:bg-zinc-900 transition group"
-                >
-                  <span className="p-2 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 text-base shrink-0">
-                    ✍️
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h5 className="text-xs font-bold text-zinc-100 group-hover:text-purple-400 transition truncate">
-                      Grammar Corrections
-                    </h5>
-                    <p className="text-[11px] text-zinc-400 truncate">Fix sentence structure</p>
-                  </div>
-                  <span className="text-zinc-500 group-hover:text-purple-400 transition text-xs">➔</span>
-                </Link>
-
-                <Link
-                  href="/speaking-score"
-                  className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 hover:border-emerald-500/50 hover:bg-zinc-900 transition group"
-                >
-                  <span className="p-2 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 text-base shrink-0">
-                    📈
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h5 className="text-xs font-bold text-zinc-100 group-hover:text-emerald-400 transition truncate">
-                      Detailed Analytics
-                    </h5>
-                    <p className="text-[11px] text-zinc-400 truncate">View speaking trend reports</p>
-                  </div>
-                  <span className="text-zinc-500 group-hover:text-emerald-400 transition text-xs">➔</span>
-                </Link>
+              {/* Motivational Rocket Card */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1C1538] via-[#141838] to-[#0A0D1D] border border-[#3B2D6E] shadow-xl text-center space-y-2">
+                <span className="text-3xl block">🚀</span>
+                <p className="text-xs font-bold text-indigo-200 italic">
+                  "Practice a little every day, for a big tomorrow."
+                </p>
               </div>
+
             </div>
           </div>
         </div>
