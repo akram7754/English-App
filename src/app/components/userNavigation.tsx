@@ -2,6 +2,7 @@ import React from "react";
 
 export type UserPanelNavKey =
   | "dashboard"
+  | "basic-words"
   | "voice-conversation"
   | "progress"
   | "ai-tutor"
@@ -22,18 +23,18 @@ export interface UserNavItem {
 
 /**
  * FIXED USER PANEL NAVIGATION SPECIFICATION
- * Exact, permanently fixed order:
+ * Exact order:
  * 1. Dashboard
- * 2. AI Voice Tutor
- * 3. My Progress
- * 4. AI Tutor
- * 5. AI Chat
- * 6. Voice Practice
- * 7. Lessons / Skills
- * 8. Grammar Check
- * 9. Speaking Score
- * 10. My Profile
- * (11. Logout / Exit is rendered at the bottom of the navigation list)
+ * 2. Basic Words & Phrases
+ * 3. AI Voice Tutor
+ * 4. My Progress
+ * 5. AI Tutor
+ * 6. AI Chat
+ * 7. Voice Practice
+ * 8. Lessons / Skills
+ * 9. Grammar Check
+ * 10. Speaking Score
+ * 11. My Profile
  */
 export const USER_NAVIGATION: readonly UserNavItem[] = [
   {
@@ -47,6 +48,21 @@ export const USER_NAVIGATION: readonly UserNavItem[] = [
           strokeLinejoin="round"
           strokeWidth={2}
           d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"
+        />
+      </svg>
+    ),
+  },
+  {
+    key: "basic-words",
+    label: "Basic Words",
+    href: "/basic-words",
+    icon: (
+      <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
         />
       </svg>
     ),
