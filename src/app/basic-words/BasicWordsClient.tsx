@@ -378,7 +378,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:flex sm:items-center gap-1.5 sm:gap-2.5 min-w-0 w-full md:w-auto">
             {/* Left: SPEAK */}
             <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 sm:flex-initial">
-              <span className="text-[10px] sm:text-xs font-black tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0 uppercase">
+              <span className="text-[10px] sm:text-xs font-black tracking-wider text-zinc-600 dark:text-zinc-300 shrink-0 uppercase">
                 SPEAK:
               </span>
               <div className="min-w-0 w-full sm:w-auto relative">
@@ -386,16 +386,16 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   value={sourceLangCode}
                   onChange={(e) => handleSourceLangChange(e.target.value)}
                   aria-label="Source Language"
-                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-[11px] sm:text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-5.5 sm:pr-7 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-[11px] sm:text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
+                    <option key={l.code} value={l.code} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-medium">
                       {l.flag} {l.name}
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 flex items-center">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <div className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 flex items-center">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                   </svg>
                 </div>
@@ -428,16 +428,16 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   value={targetLangCode}
                   onChange={(e) => handleTargetLangChange(e.target.value)}
                   aria-label="Target Language"
-                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-[11px] sm:text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-5.5 sm:pr-7 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-[11px] sm:text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-indigo-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
+                    <option key={l.code} value={l.code} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-medium">
                       {l.flag} {l.name}
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-indigo-400/80 dark:text-indigo-400 flex items-center">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <div className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-indigo-600 dark:text-indigo-400 flex items-center">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                   </svg>
                 </div>
