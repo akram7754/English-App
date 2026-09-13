@@ -373,15 +373,17 @@ export default function BasicWordsClient({ initialStats }: Props) {
           </p>
         </div>
 
-        {/* Multilingual Selector: I SPEAK -> I LEARN */}
-        <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/80 p-2 sm:p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 w-full md:w-auto">
+        {/* Multilingual Selector: SPEAK: [Hindi] → LEARN: [Arabic] */}
+        <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2 bg-zinc-50 dark:bg-zinc-800/80 p-2 sm:p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 w-full md:w-auto">
           <div className="flex-1 sm:flex-initial flex items-center gap-1.5 min-w-0">
-            <span className="text-[11px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-400 shrink-0">I SPEAK:</span>
+            <span className="text-[11px] sm:text-xs font-black tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0">
+              SPEAK:
+            </span>
             <select
               value={sourceLangCode}
               onChange={(e) => handleSourceLangChange(e.target.value)}
               aria-label="Source Language"
-              className="w-full sm:w-auto bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-lg px-2 sm:px-2.5 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate"
+              className="w-full sm:w-auto bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-lg px-2 sm:px-2.5 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
             >
               {SUPPORTED_LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>
@@ -396,20 +398,20 @@ export default function BasicWordsClient({ initialStats }: Props) {
             onClick={handleSwapLanguages}
             title="Swap Languages"
             aria-label="Swap Languages"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-600 hover:bg-zinc-200/60 dark:hover:bg-zinc-700 transition cursor-pointer shrink-0 active:scale-95"
+            className="flex items-center justify-center px-1 sm:px-1.5 py-1 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 font-black text-sm sm:text-base transition cursor-pointer shrink-0 active:scale-95"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
+            <span>→</span>
           </button>
 
           <div className="flex-1 sm:flex-initial flex items-center gap-1.5 min-w-0">
-            <span className="text-[11px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-400 shrink-0">I LEARN:</span>
+            <span className="text-[11px] sm:text-xs font-black tracking-wider text-indigo-600 dark:text-indigo-400 shrink-0">
+              LEARN:
+            </span>
             <select
               value={targetLangCode}
               onChange={(e) => handleTargetLangChange(e.target.value)}
               aria-label="Target Language"
-              className="w-full sm:w-auto bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-lg px-2 sm:px-2.5 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate"
+              className="w-full sm:w-auto bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-lg px-2 sm:px-2.5 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
             >
               {SUPPORTED_LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>
