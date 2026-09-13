@@ -358,9 +358,9 @@ export default function BasicWordsClient({ initialStats }: Props) {
   }, [selectedCategory, selectedLevel, searchQuery, activeTab, stats, targetLang.code, sourceLang.code]);
 
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0">
+    <div className="flex-1 w-full max-w-7xl mx-auto px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0">
       {/* 1. TOP HEADER & LANGUAGE CONTROLS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-white dark:bg-zinc-900 p-3 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs min-w-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4 bg-white dark:bg-zinc-900 p-3.5 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs min-w-0">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1 min-w-0">
             <span className="text-2xl shrink-0">📖</span>
@@ -374,19 +374,19 @@ export default function BasicWordsClient({ initialStats }: Props) {
         </div>
 
         {/* Multilingual Selector: SPEAK: [Hindi] → LEARN: [Arabic] */}
-        <div className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-800/80 p-2 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 min-w-0 shrink-0">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 sm:gap-3 min-w-0 w-full">
+        <div className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-800/80 p-2 sm:p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 min-w-0 shrink-0">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:flex sm:items-center gap-1.5 sm:gap-2.5 min-w-0 w-full md:w-auto">
             {/* Left: SPEAK */}
-            <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5">
+            <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 sm:flex-initial">
               <span className="text-[10px] sm:text-xs font-black tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0 uppercase">
                 SPEAK:
               </span>
-              <div className="min-w-0 w-full relative">
+              <div className="min-w-0 w-full sm:w-auto relative">
                 <select
                   value={sourceLangCode}
                   onChange={(e) => handleSourceLangChange(e.target.value)}
                   aria-label="Source Language"
-                  className="w-full min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
@@ -403,7 +403,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
             </div>
 
             {/* Center: Swap / Directional Arrow */}
-            <div className="flex flex-col items-center justify-end shrink-0">
+            <div className="flex flex-col items-center justify-end shrink-0 sm:flex-row sm:items-center">
               <span className="text-[10px] sm:hidden font-black opacity-0 select-none tracking-wider pointer-events-none mb-1">
                 &nbsp;
               </span>
@@ -419,16 +419,16 @@ export default function BasicWordsClient({ initialStats }: Props) {
             </div>
 
             {/* Right: LEARN */}
-            <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5">
+            <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 sm:flex-initial">
               <span className="text-[10px] sm:text-xs font-black tracking-wider text-indigo-600 dark:text-indigo-400 shrink-0 uppercase">
                 LEARN:
               </span>
-              <div className="min-w-0 w-full relative">
+              <div className="min-w-0 w-full sm:w-auto relative">
                 <select
                   value={targetLangCode}
                   onChange={(e) => handleTargetLangChange(e.target.value)}
                   aria-label="Target Language"
-                  className="w-full min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
