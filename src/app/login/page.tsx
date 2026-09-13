@@ -415,7 +415,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <span>Sign In</span>
+                    <span>Keep Login</span>
                     <span className="text-lg font-normal">→</span>
                   </>
                 )}
