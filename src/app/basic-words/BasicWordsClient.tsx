@@ -358,13 +358,13 @@ export default function BasicWordsClient({ initialStats }: Props) {
   }, [selectedCategory, selectedLevel, searchQuery, activeTab, stats, targetLang.code, sourceLang.code]);
 
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
+    <div className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0">
       {/* 1. TOP HEADER & LANGUAGE CONTROLS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4 bg-white dark:bg-zinc-900 p-3.5 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs min-w-0">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">📖</span>
-            <h1 className="text-lg sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-white dark:bg-zinc-900 p-3 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1 min-w-0">
+            <span className="text-2xl shrink-0">📖</span>
+            <h1 className="text-lg sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white truncate">
               Basic Words & Phrases
             </h1>
           </div>
@@ -374,11 +374,11 @@ export default function BasicWordsClient({ initialStats }: Props) {
         </div>
 
         {/* Multilingual Selector: SPEAK: [Hindi] → LEARN: [Arabic] */}
-        <div className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-800/80 p-2.5 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 min-w-0">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3 min-w-0">
+        <div className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-800/80 p-2 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 min-w-0 shrink-0">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 sm:gap-3 min-w-0 w-full">
             {/* Left: SPEAK */}
             <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5">
-              <span className="text-[10px] sm:text-xs font-black tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0">
+              <span className="text-[10px] sm:text-xs font-black tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0 uppercase">
                 SPEAK:
               </span>
               <div className="min-w-0 w-full relative">
@@ -386,7 +386,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   value={sourceLangCode}
                   onChange={(e) => handleSourceLangChange(e.target.value)}
                   aria-label="Source Language"
-                  className="w-full min-w-0 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl px-2 sm:px-2.5 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
@@ -394,17 +394,25 @@ export default function BasicWordsClient({ initialStats }: Props) {
                     </option>
                   ))}
                 </select>
+                <div className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 flex items-center">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </div>
               </div>
             </div>
 
             {/* Center: Swap / Directional Arrow */}
-            <div className="flex items-center justify-center pt-3.5 sm:pt-0 shrink-0">
+            <div className="flex flex-col items-center justify-end shrink-0">
+              <span className="text-[10px] sm:hidden font-black opacity-0 select-none tracking-wider pointer-events-none mb-1">
+                &nbsp;
+              </span>
               <button
                 type="button"
                 onClick={handleSwapLanguages}
                 title="Swap Languages (SPEAK ⇄ LEARN)"
                 aria-label="Swap Languages"
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-sm shadow-2xs transition cursor-pointer active:scale-90 shrink-0"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs sm:text-sm shadow-2xs transition cursor-pointer active:scale-90 shrink-0"
               >
                 <span>→</span>
               </button>
@@ -412,7 +420,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
 
             {/* Right: LEARN */}
             <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5">
-              <span className="text-[10px] sm:text-xs font-black tracking-wider text-indigo-600 dark:text-indigo-400 shrink-0">
+              <span className="text-[10px] sm:text-xs font-black tracking-wider text-indigo-600 dark:text-indigo-400 shrink-0 uppercase">
                 LEARN:
               </span>
               <div className="min-w-0 w-full relative">
@@ -420,7 +428,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   value={targetLangCode}
                   onChange={(e) => handleTargetLangChange(e.target.value)}
                   aria-label="Target Language"
-                  className="w-full min-w-0 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl px-2 sm:px-2.5 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
@@ -428,6 +436,11 @@ export default function BasicWordsClient({ initialStats }: Props) {
                     </option>
                   ))}
                 </select>
+                <div className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-indigo-400/80 dark:text-indigo-400 flex items-center">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -507,7 +520,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
 
       {/* 3. TABS & SMART FILTERS */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-zinc-200/80 dark:border-zinc-800 pb-3">
-        <div className="-mx-3.5 px-3.5 sm:mx-0 sm:px-0 flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div className="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setActiveTab("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 ${
@@ -607,7 +620,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
       </div>
 
       {/* 4. CATEGORY PILLS (All 17 Categories) */}
-      <div className="-mx-3.5 px-3.5 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <div className="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
         <button
           onClick={() => setSelectedCategory("All")}
           className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition cursor-pointer border ${
