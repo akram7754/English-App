@@ -43,7 +43,7 @@ export default function UserPanelShell({
       {/* ========================================================= */}
       {/* 2. MAIN APPLICATION WORKSPACE AREA                        */}
       {/* ========================================================= */}
-      <main className={`flex-1 flex flex-col min-w-0 min-h-0 ${fullHeightContent ? "h-auto lg:h-full overflow-visible lg:overflow-hidden" : "overflow-y-auto"}`}>
+      <main className={`flex-1 flex flex-col min-w-0 min-h-0 ${fullHeightContent ? "h-auto lg:h-full overflow-visible lg:overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
         {/* Mobile Header (Rendered on mobile viewports) */}
         <MobileHeader
           userName={userName}

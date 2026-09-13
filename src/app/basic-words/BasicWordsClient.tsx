@@ -358,7 +358,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
   }, [selectedCategory, selectedLevel, searchQuery, activeTab, stats, targetLang.code, sourceLang.code]);
 
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0">
+    <div className="flex-1 w-full max-w-7xl mx-auto px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
       {/* 1. TOP HEADER & LANGUAGE CONTROLS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4 bg-white dark:bg-zinc-900 p-3.5 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs min-w-0">
         <div className="min-w-0">
@@ -519,8 +519,8 @@ export default function BasicWordsClient({ initialStats }: Props) {
       </div>
 
       {/* 3. TABS & SMART FILTERS */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-zinc-200/80 dark:border-zinc-800 pb-3">
-        <div className="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-zinc-200/80 dark:border-zinc-800 pb-3 min-w-0">
+        <div className="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none max-w-full">
           <button
             onClick={() => setActiveTab("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 ${
@@ -620,7 +620,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
       </div>
 
       {/* 4. CATEGORY PILLS (All 17 Categories) */}
-      <div className="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <div className="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none max-w-full">
         <button
           onClick={() => setSelectedCategory("All")}
           className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition cursor-pointer border ${
@@ -855,7 +855,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
             }}
           />
 
-          <div className="relative z-10 bg-white dark:bg-zinc-900 border-t sm:border border-zinc-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200">
+          <div className="relative z-10 bg-white dark:bg-zinc-900 border-t sm:border border-zinc-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col overflow-y-auto overflow-x-hidden animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200">
             {/* Mobile Sheet Drag Indicator Handle */}
             <div className="w-12 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700 mx-auto sm:hidden shrink-0" />
 
