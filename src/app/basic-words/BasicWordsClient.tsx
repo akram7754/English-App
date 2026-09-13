@@ -358,9 +358,9 @@ export default function BasicWordsClient({ initialStats }: Props) {
   }, [selectedCategory, selectedLevel, searchQuery, activeTab, stats, targetLang.code, sourceLang.code]);
 
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
+    <div className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
       {/* 1. TOP HEADER & LANGUAGE CONTROLS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4 bg-white dark:bg-zinc-900 p-3.5 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs min-w-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-white dark:bg-zinc-900 p-3 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs min-w-0">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1 min-w-0">
             <span className="text-2xl shrink-0">📖</span>
@@ -386,7 +386,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   value={sourceLangCode}
                   onChange={(e) => handleSourceLangChange(e.target.value)}
                   aria-label="Source Language"
-                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-[11px] sm:text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-5.5 sm:pr-7 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
@@ -428,7 +428,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   value={targetLangCode}
                   onChange={(e) => handleTargetLangChange(e.target.value)}
                   aria-label="Target Language"
-                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-[11px] sm:text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-5.5 sm:pr-7 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
