@@ -374,19 +374,19 @@ export default function BasicWordsClient({ initialStats }: Props) {
         </div>
 
         {/* Multilingual Selector: SPEAK: [Hindi] → LEARN: [Arabic] */}
-        <div className="w-full max-w-full md:w-auto md:shrink-0 bg-zinc-50 dark:bg-zinc-800/80 p-2 sm:p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 min-w-0">
-          <div className="lang-selector-grid grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:flex sm:items-center gap-1.5 sm:gap-2.5 min-w-0 w-full max-w-full md:w-auto">
+        <div className="w-full max-w-full sm:w-auto sm:shrink-0 bg-zinc-50 dark:bg-zinc-800/80 p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2.5 min-w-0 w-full sm:w-auto">
             {/* Left: SPEAK */}
-            <div className="min-w-0 max-w-full flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 sm:flex-initial">
-              <span className="text-[10px] sm:text-xs font-black tracking-wider text-zinc-600 dark:text-zinc-300 shrink-0 uppercase">
+            <div className="min-w-0 w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 sm:gap-1.5">
+              <span className="text-[11px] sm:text-xs font-black tracking-wider text-zinc-600 dark:text-zinc-300 shrink-0 uppercase">
                 SPEAK:
               </span>
-              <div className="min-w-0 w-full max-w-full sm:w-auto relative">
+              <div className="min-w-0 flex-1 sm:flex-initial sm:w-auto relative">
                 <select
                   value={sourceLangCode}
                   onChange={(e) => handleSourceLangChange(e.target.value)}
                   aria-label="Source Language"
-                  className="w-full sm:w-auto min-w-0 max-w-full appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-[11px] sm:text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2.5 pr-8 py-2 sm:py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-medium">
@@ -394,7 +394,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 flex items-center">
+                <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 flex items-center">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                   </svg>
@@ -403,33 +403,30 @@ export default function BasicWordsClient({ initialStats }: Props) {
             </div>
 
             {/* Center: Swap / Directional Arrow */}
-            <div className="lang-selector-arrow flex flex-col items-center justify-end shrink-0 sm:flex-row sm:items-center">
-              <span className="lang-selector-spacer text-[10px] sm:hidden font-black opacity-0 select-none tracking-wider pointer-events-none mb-1">
-                &nbsp;
-              </span>
+            <div className="flex items-center justify-center shrink-0 py-0.5 sm:py-0">
               <button
                 type="button"
                 onClick={handleSwapLanguages}
                 title="Swap Languages (SPEAK ⇄ LEARN)"
                 aria-label="Swap Languages"
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs sm:text-sm shadow-2xs transition cursor-pointer active:scale-90 shrink-0"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs sm:text-sm shadow-2xs transition cursor-pointer active:scale-90"
               >
-                <span className="lang-arrow-horizontal">→</span>
-                <span className="lang-arrow-vertical">↓</span>
+                <span className="sm:hidden text-xs">⇅</span>
+                <span className="hidden sm:inline">→</span>
               </button>
             </div>
 
             {/* Right: LEARN */}
-            <div className="min-w-0 max-w-full flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 sm:flex-initial">
-              <span className="text-[10px] sm:text-xs font-black tracking-wider text-indigo-600 dark:text-indigo-400 shrink-0 uppercase">
+            <div className="min-w-0 w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 sm:gap-1.5">
+              <span className="text-[11px] sm:text-xs font-black tracking-wider text-indigo-600 dark:text-indigo-400 shrink-0 uppercase">
                 LEARN:
               </span>
-              <div className="min-w-0 w-full max-w-full sm:w-auto relative">
+              <div className="min-w-0 flex-1 sm:flex-initial sm:w-auto relative">
                 <select
                   value={targetLangCode}
                   onChange={(e) => handleTargetLangChange(e.target.value)}
                   aria-label="Target Language"
-                  className="w-full sm:w-auto min-w-0 max-w-full appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-[11px] sm:text-xs font-bold rounded-xl pl-2 sm:pl-2.5 pr-6 sm:pr-7 py-1.5 text-indigo-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto min-w-0 appearance-none bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-xl pl-2.5 pr-8 py-2 sm:py-1.5 text-indigo-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate cursor-pointer shadow-2xs"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-medium">
@@ -437,7 +434,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-indigo-600 dark:text-indigo-400 flex items-center">
+                <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-indigo-600 dark:text-indigo-400 flex items-center">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                   </svg>
