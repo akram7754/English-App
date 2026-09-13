@@ -357,6 +357,44 @@ export default function BasicWordsClient({ initialStats }: Props) {
     return items;
   }, [selectedCategory, selectedLevel, searchQuery, activeTab, stats, targetLang.code, sourceLang.code]);
 
+  // Advance to Next Practice Item / Question
+  const handleNextPracticeItem = () => {
+    if (!activePracticeItem) return;
+    stopTTS();
+    handleStopSpeaking();
+
+    const currentIndex = filteredItems.findIndex((item) => item.id === activePracticeItem.id);
+    if (currentIndex !== -1 && currentIndex + 1 < filteredItems.length) {
+      const nextItem = filteredItems[currentIndex + 1];
+      setActivePracticeItem(nextItem);
+      setAttemptResult(null);
+      setLiveTranscript("");
+      setMicError("");
+    } else {
+      const currIndex = BASIC_WORDS_CURRICULUM.findIndex((item) => item.id === activePracticeItem.id);
+      if (currIndex !== -1 && currIndex + 1 < BASIC_WORDS_CURRICULUM.length) {
+        const nextItem = BASIC_WORDS_CURRICULUM[currIndex + 1];
+        setActivePracticeItem(nextItem);
+        setAttemptResult(null);
+        setLiveTranscript("");
+        setMicError("");
+      } else {
+        setActivePracticeItem(null);
+        setAttemptResult(null);
+        setLiveTranscript("");
+        setMicError("");
+      }
+    }
+  };
+
+  // Determine if the current attempt result is evaluated as correct using the project's existing correctness logic
+  const isAttemptCorrect = useMemo(() => {
+    if (!attemptResult) return false;
+    const statusNormalized = (attemptResult.status || "").toLowerCase().trim();
+    const scoreVal = typeof attemptResult.score === "number" ? attemptResult.score : Number(attemptResult.score);
+    return statusNormalized === "correct" || scoreVal >= 85;
+  }, [attemptResult]);
+
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
       {/* 1. TOP HEADER & LANGUAGE CONTROLS */}
@@ -953,7 +991,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
               ) : attemptResult ? (
                 <div
                   className={`p-3.5 sm:p-4 rounded-2xl border text-left space-y-2 ${
-                    attemptResult.status === "Correct"
+                    isAttemptCorrect
                       ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800"
                       : attemptResult.status === "Almost Correct"
                       ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800"
@@ -963,17 +1001,17 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span
                       className={`text-xs font-black uppercase px-2.5 py-0.5 rounded-full ${
-                        attemptResult.status === "Correct"
+                        isAttemptCorrect
                           ? "bg-emerald-500 text-white"
                           : attemptResult.status === "Almost Correct"
                           ? "bg-amber-500 text-white"
                           : "bg-rose-500 text-white"
                       }`}
                     >
-                      {attemptResult.status} ({attemptResult.score}%)
+                      {isAttemptCorrect ? "CORRECT" : attemptResult.status} ({attemptResult.score}%)
                     </span>
                     <span className="text-[11px] sm:text-xs font-bold text-zinc-500">
-                      {attemptResult.status === "Correct"
+                      {isAttemptCorrect
                         ? "🎉 Perfect execution!"
                         : attemptResult.status === "Almost Correct"
                         ? "👍 Very close!"
@@ -1014,13 +1052,29 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   <span className="text-sm">⏹</span>
                   <span>Stop & Check</span>
                 </button>
+              ) : isAttemptCorrect ? (
+                <button
+                  onClick={handleNextPracticeItem}
+                  className="w-full sm:w-auto px-8 py-3.5 min-h-[46px] rounded-2xl sm:rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 cursor-pointer active:scale-95"
+                >
+                  <span>Next Question</span>
+                  <span className="text-sm">→</span>
+                </button>
+              ) : attemptResult ? (
+                <button
+                  onClick={() => handleStartSpeaking(activePracticeItem)}
+                  className="w-full sm:w-auto px-8 py-3.5 min-h-[46px] rounded-2xl sm:rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer active:scale-95"
+                >
+                  <span className="text-sm">🎤</span>
+                  <span>Try Again</span>
+                </button>
               ) : (
                 <button
                   onClick={() => handleStartSpeaking(activePracticeItem)}
                   className="w-full sm:w-auto px-8 py-3.5 min-h-[46px] rounded-2xl sm:rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer active:scale-95"
                 >
                   <span className="text-sm">🎤</span>
-                  <span>{attemptResult ? "Try Again" : "Start Speaking"}</span>
+                  <span>Start Speaking</span>
                 </button>
               )}
             </div>
