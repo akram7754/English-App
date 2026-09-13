@@ -375,7 +375,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
 
         {/* Multilingual Selector: SPEAK: [Hindi] → LEARN: [Arabic] */}
         <div className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-800/80 p-2 sm:p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 min-w-0 shrink-0">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:flex sm:items-center gap-1.5 sm:gap-2.5 min-w-0 w-full md:w-auto">
+          <div className="lang-selector-grid grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:flex sm:items-center gap-1.5 sm:gap-2.5 min-w-0 w-full md:w-auto">
             {/* Left: SPEAK */}
             <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 sm:flex-initial">
               <span className="text-[10px] sm:text-xs font-black tracking-wider text-zinc-600 dark:text-zinc-300 shrink-0 uppercase">
@@ -403,8 +403,8 @@ export default function BasicWordsClient({ initialStats }: Props) {
             </div>
 
             {/* Center: Swap / Directional Arrow */}
-            <div className="flex flex-col items-center justify-end shrink-0 sm:flex-row sm:items-center">
-              <span className="text-[10px] sm:hidden font-black opacity-0 select-none tracking-wider pointer-events-none mb-1">
+            <div className="lang-selector-arrow flex flex-col items-center justify-end shrink-0 sm:flex-row sm:items-center">
+              <span className="lang-selector-spacer text-[10px] sm:hidden font-black opacity-0 select-none tracking-wider pointer-events-none mb-1">
                 &nbsp;
               </span>
               <button
@@ -414,7 +414,8 @@ export default function BasicWordsClient({ initialStats }: Props) {
                 aria-label="Swap Languages"
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs sm:text-sm shadow-2xs transition cursor-pointer active:scale-90 shrink-0"
               >
-                <span>→</span>
+                <span className="lang-arrow-horizontal">→</span>
+                <span className="lang-arrow-vertical">↓</span>
               </button>
             </div>
 
