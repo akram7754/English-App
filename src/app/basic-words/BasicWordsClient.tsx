@@ -119,6 +119,13 @@ export default function BasicWordsClient({ initialStats }: Props) {
     setTargetLangCode(code);
   };
 
+  const handleSwapLanguages = () => {
+    const prevSource = sourceLangCode;
+    const prevTarget = targetLangCode;
+    setSourceLangCode(prevTarget);
+    setTargetLangCode(prevSource);
+  };
+
   // Play audio for word or phrase
   const handleListen = (text: string, id: string) => {
     stopTTS();
@@ -351,13 +358,13 @@ export default function BasicWordsClient({ initialStats }: Props) {
   }, [selectedCategory, selectedLevel, searchQuery, activeTab, stats, targetLang.code, sourceLang.code]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-6">
+    <div className="flex-1 w-full max-w-7xl mx-auto px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* 1. TOP HEADER & LANGUAGE CONTROLS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4 bg-white dark:bg-zinc-900 p-4 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-2xl">📖</span>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+            <h1 className="text-lg sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
               Basic Words & Phrases
             </h1>
           </div>
@@ -367,13 +374,14 @@ export default function BasicWordsClient({ initialStats }: Props) {
         </div>
 
         {/* Multilingual Selector: I SPEAK -> I LEARN */}
-        <div className="flex items-center gap-2 sm:gap-3 bg-zinc-50 dark:bg-zinc-800/80 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">I SPEAK:</span>
+        <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/80 p-2 sm:p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 w-full md:w-auto">
+          <div className="flex-1 sm:flex-initial flex items-center gap-1.5 min-w-0">
+            <span className="text-[11px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-400 shrink-0">I SPEAK:</span>
             <select
               value={sourceLangCode}
               onChange={(e) => handleSourceLangChange(e.target.value)}
-              className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-lg px-2.5 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Source Language"
+              className="w-full sm:w-auto bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-lg px-2 sm:px-2.5 py-1.5 text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate"
             >
               {SUPPORTED_LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>
@@ -383,14 +391,25 @@ export default function BasicWordsClient({ initialStats }: Props) {
             </select>
           </div>
 
-          <span className="text-zinc-400 font-bold">➔</span>
+          <button
+            type="button"
+            onClick={handleSwapLanguages}
+            title="Swap Languages"
+            aria-label="Swap Languages"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-600 hover:bg-zinc-200/60 dark:hover:bg-zinc-700 transition cursor-pointer shrink-0 active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          </button>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">I LEARN:</span>
+          <div className="flex-1 sm:flex-initial flex items-center gap-1.5 min-w-0">
+            <span className="text-[11px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-400 shrink-0">I LEARN:</span>
             <select
               value={targetLangCode}
               onChange={(e) => handleTargetLangChange(e.target.value)}
-              className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-lg px-2.5 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Target Language"
+              className="w-full sm:w-auto bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs font-bold rounded-lg px-2 sm:px-2.5 py-1.5 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate"
             >
               {SUPPORTED_LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>
@@ -403,24 +422,24 @@ export default function BasicWordsClient({ initialStats }: Props) {
       </div>
 
       {/* 2. DAILY GOAL & PROGRESS SUMMARY BANNER */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Daily Goal Card */}
-        <div className="lg:col-span-1 bg-gradient-to-br from-indigo-600 to-indigo-700 text-white p-5 rounded-2xl shadow-md relative overflow-hidden flex flex-col justify-between">
+        <div className="lg:col-span-1 bg-gradient-to-br from-indigo-600 to-indigo-700 text-white p-4 sm:p-5 rounded-2xl shadow-md relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs uppercase font-bold tracking-wider text-indigo-200">Daily Goal</span>
-              <span className="text-xs font-black bg-white/20 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-indigo-200">Daily Goal</span>
+              <span className="text-[11px] sm:text-xs font-black bg-white/20 px-2 py-0.5 rounded-full">
                 {stats.dailyGoalCompleted >= 10 ? "Goal Met! 🎉" : "In Progress"}
               </span>
             </div>
-            <h3 className="text-lg font-bold">Learn 10 words today</h3>
-            <p className="text-xs text-indigo-100 mt-1">
+            <h3 className="text-base sm:text-lg font-bold">Learn 10 words today</h3>
+            <p className="text-[11px] sm:text-xs text-indigo-100 mt-1">
               Practice words daily to build long-term fluency and retention.
             </p>
           </div>
 
-          <div className="mt-4">
-            <div className="flex justify-between text-xs font-bold mb-1">
+          <div className="mt-3.5 sm:mt-4">
+            <div className="flex justify-between text-xs font-bold mb-1.5">
               <span>Progress</span>
               <span>{stats.dailyGoalCompleted} / 10 completed</span>
             </div>
@@ -434,39 +453,39 @@ export default function BasicWordsClient({ initialStats }: Props) {
         </div>
 
         {/* 5 Stats Counter Cards */}
-        <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center">
-            <span className="text-xs text-zinc-400 font-semibold mb-1">Words Learned</span>
-            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+        <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+          <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center">
+            <span className="text-[11px] sm:text-xs text-zinc-400 font-semibold mb-1">Words Learned</span>
+            <span className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
               {stats.wordsLearnedCount}
             </span>
           </div>
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center">
-            <span className="text-xs text-zinc-400 font-semibold mb-1">Phrases Learned</span>
-            <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
+          <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center">
+            <span className="text-[11px] sm:text-xs text-zinc-400 font-semibold mb-1">Phrases Learned</span>
+            <span className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400">
               {stats.phrasesLearnedCount}
             </span>
           </div>
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center">
-            <span className="text-xs text-zinc-400 font-semibold mb-1">Total Practiced</span>
-            <span className="text-2xl font-black text-purple-600 dark:text-purple-400">
+          <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center">
+            <span className="text-[11px] sm:text-xs text-zinc-400 font-semibold mb-1">Total Practiced</span>
+            <span className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400">
               {stats.wordsPracticedCount}
             </span>
           </div>
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center">
-            <span className="text-xs text-zinc-400 font-semibold mb-1">Speaking Attempts</span>
-            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
+          <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center">
+            <span className="text-[11px] sm:text-xs text-zinc-400 font-semibold mb-1">Speaking Attempts</span>
+            <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
               {stats.speakingAttemptsCount}
             </span>
           </div>
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center col-span-2 sm:col-span-1">
+          <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-center flex flex-col justify-center col-span-2 sm:col-span-1">
             <div className="flex items-center justify-center gap-1">
-              <span className="text-xs text-zinc-400 font-semibold mb-1">Practice Again</span>
+              <span className="text-[11px] sm:text-xs text-zinc-400 font-semibold mb-1">Practice Again</span>
               {stats.needsPracticeCount > 0 && (
                 <span className="w-2 h-2 rounded-full bg-rose-500 mb-1 animate-pulse" />
               )}
             </div>
-            <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
+            <span className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400">
               {stats.needsPracticeCount}
             </span>
           </div>
@@ -474,11 +493,11 @@ export default function BasicWordsClient({ initialStats }: Props) {
       </div>
 
       {/* 3. TABS & SMART FILTERS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-200/80 dark:border-zinc-800 pb-3">
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-zinc-200/80 dark:border-zinc-800 pb-3">
+        <div className="-mx-3.5 px-3.5 sm:mx-0 sm:px-0 flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setActiveTab("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "all"
                 ? "bg-indigo-600 text-white shadow-xs"
                 : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -488,7 +507,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
           </button>
           <button
             onClick={() => setActiveTab("revision")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 flex items-center gap-1.5 ${
               activeTab === "revision"
                 ? "bg-rose-600 text-white shadow-xs"
                 : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -503,7 +522,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
           </button>
           <button
             onClick={() => setActiveTab("favorites")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 flex items-center gap-1.5 ${
               activeTab === "favorites"
                 ? "bg-amber-500 text-white shadow-xs"
                 : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -518,7 +537,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
           </button>
           <button
             onClick={() => setActiveTab("learned")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "learned"
                 ? "bg-emerald-600 text-white shadow-xs"
                 : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -528,7 +547,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
           </button>
           <button
             onClick={() => setActiveTab("unlearned")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "unlearned"
                 ? "bg-zinc-700 text-white shadow-xs"
                 : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -539,11 +558,11 @@ export default function BasicWordsClient({ initialStats }: Props) {
         </div>
 
         {/* Level filter & search bar */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full lg:w-auto">
           <select
             value={selectedLevel}
             onChange={(e) => setSelectedLevel(e.target.value)}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium rounded-lg px-2.5 py-1.5 text-zinc-700 dark:text-zinc-300 focus:outline-none"
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium rounded-lg px-2.5 py-2 sm:py-1.5 text-zinc-700 dark:text-zinc-300 focus:outline-none flex-1 sm:flex-initial"
           >
             <option value="All">All Levels</option>
             <option value="Beginner">Beginner (Words)</option>
@@ -551,26 +570,36 @@ export default function BasicWordsClient({ initialStats }: Props) {
             <option value="Intermediate">Intermediate (Conversations)</option>
           </select>
 
-          <div className="relative w-48 sm:w-60">
+          <div className="relative flex-1 sm:w-60">
             <input
               type="text"
               placeholder="Search words..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-8 pr-7 py-2 sm:py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <span className="absolute left-2.5 top-2 text-zinc-400 text-xs">🔍</span>
+            <span className="absolute left-2.5 top-2.5 sm:top-2 text-zinc-400 text-xs">🔍</span>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-2 sm:top-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xs cursor-pointer p-0.5"
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* 4. CATEGORY PILLS (All 17 Categories) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+      <div className="-mx-3.5 px-3.5 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
         <button
           onClick={() => setSelectedCategory("All")}
           className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition cursor-pointer border ${
             selectedCategory === "All"
-              ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700"
+              ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-xs"
               : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
           }`}
         >
@@ -584,7 +613,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
               onClick={() => setSelectedCategory(cat.name)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition cursor-pointer border flex items-center gap-1.5 ${
                 isSel
-                  ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700"
+                  ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-xs"
                   : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
               }`}
             >
@@ -597,15 +626,15 @@ export default function BasicWordsClient({ initialStats }: Props) {
 
       {/* 5. WORD & PHRASE CARDS GRID */}
       {filteredItems.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-12 text-center">
-          <span className="text-4xl mb-3 block">🔍</span>
-          <h3 className="text-base font-bold text-zinc-900 dark:text-white">No items found</h3>
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 sm:p-12 text-center">
+          <span className="text-3xl sm:text-4xl mb-3 block">🔍</span>
+          <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white">No items found</h3>
           <p className="text-xs text-zinc-500 mt-1">
             Try adjusting your category, level filter, or search query.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredItems.map((item) => {
             const targetEntry = item.translations[targetLang.code] || item.translations.en;
             const sourceEntry = item.translations[sourceLang.code] || item.translations.en;
@@ -622,7 +651,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
             return (
               <div
                 key={item.id}
-                className={`bg-white dark:bg-zinc-900 rounded-2xl border transition-all hover:shadow-md p-5 flex flex-col justify-between relative ${
+                className={`bg-white dark:bg-zinc-900 rounded-2xl border transition-all hover:shadow-md p-4 sm:p-5 flex flex-col justify-between relative ${
                   isNeedsPractice
                     ? "border-rose-300 dark:border-rose-900/60 bg-rose-50/10 dark:bg-rose-950/10"
                     : isLearned
@@ -631,10 +660,10 @@ export default function BasicWordsClient({ initialStats }: Props) {
                 }`}
               >
                 <div>
-                  {/* Card Header Badges */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded-md">
+                  {/* Card Header Badges & Actions */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded-md truncate max-w-[120px]">
                         {item.category}
                       </span>
                       <span
@@ -649,17 +678,17 @@ export default function BasicWordsClient({ initialStats }: Props) {
                         {item.level}
                       </span>
                       {isNeedsPractice && (
-                        <span className="text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                        <span className="text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shrink-0">
                           ⚠️ Practice Again
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       {/* Favorite Button */}
                       <button
                         onClick={() => handleToggleFavorite(item)}
-                        className={`p-1.5 rounded-lg transition cursor-pointer ${
+                        className={`p-1.5 rounded-lg transition cursor-pointer active:scale-90 ${
                           isFav
                             ? "text-amber-500 hover:text-amber-600"
                             : "text-zinc-300 hover:text-amber-400 dark:text-zinc-600"
@@ -667,29 +696,31 @@ export default function BasicWordsClient({ initialStats }: Props) {
                         title={isFav ? "Remove from favorites" : "Save to favorites"}
                         aria-label="Toggle Favorite"
                       >
-                        <span className="text-base">{isFav ? "⭐" : "☆"}</span>
+                        <span className="text-base leading-none">{isFav ? "⭐" : "☆"}</span>
                       </button>
 
                       {/* Learned Checkmark */}
                       <button
                         onClick={() => handleToggleLearned(item)}
-                        className={`p-1.5 rounded-lg transition cursor-pointer text-xs font-bold flex items-center gap-1 ${
+                        className={`p-1.5 sm:px-2 rounded-lg transition cursor-pointer text-xs font-bold flex items-center gap-1 active:scale-95 ${
                           isLearned
                             ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60"
-                            : "text-zinc-400 hover:text-emerald-600"
+                            : "text-zinc-400 hover:text-emerald-600 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                         }`}
                         title={isLearned ? "Mark as not learned" : "Mark as learned"}
+                        aria-label={isLearned ? "Learned" : "Mark as learned"}
                       >
-                        {isLearned ? "✓ Learned" : "Mark Learned"}
+                        <span>✓</span>
+                        <span className="hidden sm:inline">{isLearned ? "Learned" : "Learn"}</span>
                       </button>
                     </div>
                   </div>
 
                   {/* 1. TARGET LANGUAGE WORD/PHRASE */}
-                  <div className="space-y-1 mb-3">
+                  <div className="space-y-1.5 mb-3">
                     <p
                       dir={isTargetRtl ? "rtl" : "ltr"}
-                      className={`text-lg sm:text-xl font-black text-zinc-900 dark:text-white leading-tight ${
+                      className={`text-xl sm:text-2xl font-black text-zinc-900 dark:text-white leading-tight break-words ${
                         isTargetRtl ? "text-right font-arabic" : "text-left font-sans"
                       }`}
                     >
@@ -698,7 +729,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
 
                     {/* 2. ROMAN PRONUNCIATION */}
                     <div className="flex items-center gap-2 pt-0.5">
-                      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-md inline-block max-w-full break-words">
                         Read: {targetEntry?.romanized}
                       </span>
                     </div>
@@ -711,7 +742,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                     </p>
                     <p
                       dir={isSourceRtl ? "rtl" : "ltr"}
-                      className={`text-sm font-medium text-zinc-700 dark:text-zinc-300 leading-relaxed ${
+                      className={`text-sm sm:text-base font-medium text-zinc-700 dark:text-zinc-300 leading-relaxed break-words ${
                         isSourceRtl ? "text-right font-arabic" : "text-left font-sans"
                       }`}
                     >
@@ -721,14 +752,14 @@ export default function BasicWordsClient({ initialStats }: Props) {
 
                   {/* 4. EXAMPLE SENTENCE */}
                   {targetExample && (
-                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800 mb-4 space-y-1">
+                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800 mb-4 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                           Example Sentence:
                         </span>
                         <button
                           onClick={() => handleListen(targetExample.text, `ex-${item.id}`)}
-                          className="text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:underline cursor-pointer flex items-center gap-1"
+                          className="text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:underline cursor-pointer flex items-center gap-1 active:scale-95"
                         >
                           <span>🔊</span> Listen
                         </button>
@@ -736,18 +767,18 @@ export default function BasicWordsClient({ initialStats }: Props) {
 
                       <p
                         dir={isTargetRtl ? "rtl" : "ltr"}
-                        className={`text-xs font-bold text-zinc-800 dark:text-zinc-200 ${
+                        className={`text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200 break-words ${
                           isTargetRtl ? "text-right font-arabic" : "text-left"
                         }`}
                       >
                         {targetExample.text}
                       </p>
-                      <p className="text-[11px] text-indigo-600/80 dark:text-indigo-300/80 font-medium">
+                      <p className="text-[11px] text-indigo-600/80 dark:text-indigo-300/80 font-medium break-words">
                         Read: {targetExample.romanized}
                       </p>
                       <p
                         dir={isSourceRtl ? "rtl" : "ltr"}
-                        className={`text-xs text-zinc-500 dark:text-zinc-400 pt-0.5 ${
+                        className={`text-xs text-zinc-500 dark:text-zinc-400 pt-0.5 break-words ${
                           isSourceRtl ? "text-right font-arabic" : "text-left"
                         }`}
                       >
@@ -761,21 +792,21 @@ export default function BasicWordsClient({ initialStats }: Props) {
                 <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                   <button
                     onClick={() => handleListen(targetEntry?.text, item.id)}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+                    className={`flex-1 min-h-[42px] py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border active:scale-[0.98] ${
                       playingWordId === item.id
                         ? "bg-indigo-600 text-white border-indigo-600 animate-pulse"
                         : "bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700"
                     }`}
                   >
-                    <span>🔊</span>
+                    <span className="text-sm">🔊</span>
                     <span>Listen</span>
                   </button>
 
                   <button
                     onClick={() => handleOpenPractice(item)}
-                    className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    className="flex-1 min-h-[42px] py-2 px-3 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98]"
                   >
-                    <span>🎤</span>
+                    <span className="text-sm">🎤</span>
                     <span>Speak</span>
                   </button>
                 </div>
@@ -785,22 +816,35 @@ export default function BasicWordsClient({ initialStats }: Props) {
         </div>
       )}
 
-      {/* 6. SPEAK PRACTICE MODAL / DRAWER */}
+      {/* 6. SPEAK PRACTICE MODAL / BOTTOM DRAWER */}
       {activePracticeItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+          {/* Backdrop click to close */}
+          <div
+            className="fixed inset-0"
+            onClick={() => {
+              stopTTS();
+              handleStopSpeaking();
+              setActivePracticeItem(null);
+            }}
+          />
+
+          <div className="relative z-10 bg-white dark:bg-zinc-900 border-t sm:border border-zinc-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200">
+            {/* Mobile Sheet Drag Indicator Handle */}
+            <div className="w-12 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700 mx-auto sm:hidden shrink-0" />
+
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                <span className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm shrink-0">
                   🎤
                 </span>
                 <div>
-                  <h3 className="text-base font-black text-zinc-900 dark:text-white">
+                  <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">
                     Speaking Practice
                   </h3>
-                  <p className="text-xs text-zinc-400">
-                    Listen to the phrase, then press speak and repeat it clearly.
+                  <p className="text-[11px] sm:text-xs text-zinc-400">
+                    Listen, then tap speak and repeat clearly.
                   </p>
                 </div>
               </div>
@@ -811,7 +855,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   handleStopSpeaking();
                   setActivePracticeItem(null);
                 }}
-                className="w-8 h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 flex items-center justify-center cursor-pointer text-lg font-bold"
+                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center justify-center cursor-pointer text-sm font-bold transition active:scale-95"
                 aria-label="Close"
               >
                 ✕
@@ -832,7 +876,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                   <div className="flex justify-center">
                     <button
                       onClick={() => handleListen(target.text, `modal-${activePracticeItem.id}`)}
-                      className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-bold hover:bg-indigo-200 transition cursor-pointer flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-bold hover:bg-indigo-200 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
                     >
                       <span>🔊 Listen First</span>
                     </button>
@@ -840,18 +884,18 @@ export default function BasicWordsClient({ initialStats }: Props) {
 
                   <p
                     dir={isTgtRtl ? "rtl" : "ltr"}
-                    className={`text-2xl font-black text-zinc-900 dark:text-white ${
+                    className={`text-xl sm:text-2xl font-black text-zinc-900 dark:text-white break-words ${
                       isTgtRtl ? "font-arabic" : "font-sans"
                     }`}
                   >
                     {target.text}
                   </p>
-                  <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                  <p className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 break-words">
                     Read: {target.romanized}
                   </p>
                   <p
                     dir={isSrcRtl ? "rtl" : "ltr"}
-                    className={`text-xs text-zinc-500 dark:text-zinc-400 pt-1 border-t border-zinc-200/60 dark:border-zinc-700/60 ${
+                    className={`text-xs text-zinc-500 dark:text-zinc-400 pt-1 border-t border-zinc-200/60 dark:border-zinc-700/60 break-words ${
                       isSrcRtl ? "font-arabic" : "font-sans"
                     }`}
                   >
@@ -862,29 +906,29 @@ export default function BasicWordsClient({ initialStats }: Props) {
             })()}
 
             {/* Live Transcript & Recording Status */}
-            <div className="text-center py-2 space-y-2">
+            <div className="text-center py-1 space-y-2">
               {isRecording ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-1.5">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
                     <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
-                      Listening in {targetLang.name} ({targetLang.sttLang})... Speak now!
+                      Listening in {targetLang.name}... Speak now!
                     </span>
                   </div>
                   {liveTranscript && (
-                    <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 py-2 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <p className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 py-2 px-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 break-words">
                       &quot;{liveTranscript}&quot;
                     </p>
                   )}
                 </div>
               ) : isEvaluating ? (
-                <div className="flex items-center justify-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                <div className="flex items-center justify-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 py-2">
                   <span className="animate-spin text-sm">⏳</span>
                   Evaluating your pronunciation...
                 </div>
               ) : attemptResult ? (
                 <div
-                  className={`p-4 rounded-2xl border text-left space-y-2 ${
+                  className={`p-3.5 sm:p-4 rounded-2xl border text-left space-y-2 ${
                     attemptResult.status === "Correct"
                       ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800"
                       : attemptResult.status === "Almost Correct"
@@ -892,7 +936,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                       : "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span
                       className={`text-xs font-black uppercase px-2.5 py-0.5 rounded-full ${
                         attemptResult.status === "Correct"
@@ -904,7 +948,7 @@ export default function BasicWordsClient({ initialStats }: Props) {
                     >
                       {attemptResult.status} ({attemptResult.score}%)
                     </span>
-                    <span className="text-xs font-bold text-zinc-500">
+                    <span className="text-[11px] sm:text-xs font-bold text-zinc-500">
                       {attemptResult.status === "Correct"
                         ? "🎉 Perfect execution!"
                         : attemptResult.status === "Almost Correct"
@@ -913,45 +957,45 @@ export default function BasicWordsClient({ initialStats }: Props) {
                     </span>
                   </div>
 
-                  <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 break-words">
                     You said: <span className="font-bold">&quot;{attemptResult.transcript}&quot;</span>
                   </p>
 
                   {attemptResult.feedback?.whatToImprove?.[0] && (
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 break-words">
                       💡 Tip: {attemptResult.feedback.whatToImprove[0]}
                     </p>
                   )}
                 </div>
               ) : (
                 <p className="text-xs text-zinc-400">
-                  Click the microphone button below to record your voice.
+                  Tap the microphone button below to record your voice.
                 </p>
               )}
 
               {micError && (
-                <p className="text-xs text-amber-500 font-medium bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 text-left">
                   ⚠️ {micError}
                 </p>
               )}
             </div>
 
             {/* Modal Recording Controls */}
-            <div className="flex items-center justify-center gap-3 pt-2">
+            <div className="flex items-center justify-center pt-2">
               {isRecording ? (
                 <button
                   onClick={handleStopSpeaking}
-                  className="px-6 py-3 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-rose-600/30 cursor-pointer"
+                  className="w-full sm:w-auto px-8 py-3.5 min-h-[46px] rounded-2xl sm:rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-rose-600/30 cursor-pointer active:scale-95"
                 >
-                  <span>⏹</span>
+                  <span className="text-sm">⏹</span>
                   <span>Stop & Check</span>
                 </button>
               ) : (
                 <button
                   onClick={() => handleStartSpeaking(activePracticeItem)}
-                  className="px-8 py-3 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer"
+                  className="w-full sm:w-auto px-8 py-3.5 min-h-[46px] rounded-2xl sm:rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer active:scale-95"
                 >
-                  <span>🎤</span>
+                  <span className="text-sm">🎤</span>
                   <span>{attemptResult ? "Try Again" : "Start Speaking"}</span>
                 </button>
               )}

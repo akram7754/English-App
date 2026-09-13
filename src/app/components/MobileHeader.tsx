@@ -82,7 +82,7 @@ export default function MobileHeader({
           <div onClick={toggleMenu} className="fixed inset-0 bg-black/50 transition-opacity" />
 
           {/* Drawer Content */}
-          <div className="relative w-64 max-w-xs bg-indigo-950 text-indigo-100 dark:bg-[#090b14] dark:text-zinc-200 dark:border-r dark:border-zinc-800/80 flex flex-col justify-between h-full p-6 shadow-2xl z-50">
+          <div className="relative w-64 max-w-xs bg-indigo-950 text-indigo-100 dark:bg-[#090b14] dark:text-zinc-200 dark:border-r dark:border-zinc-800/80 flex flex-col justify-between h-full p-6 shadow-2xl z-50 overflow-y-auto">
             <div>
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
