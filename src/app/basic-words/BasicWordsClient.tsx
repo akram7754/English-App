@@ -575,12 +575,12 @@ export default function BasicWordsClient({ initialStats }: Props) {
           <select
             value={selectedLevel}
             onChange={(e) => setSelectedLevel(e.target.value)}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium rounded-lg px-2.5 py-2 sm:py-1.5 text-zinc-700 dark:text-zinc-300 focus:outline-none flex-1 sm:flex-initial"
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-semibold rounded-lg px-2.5 py-2 sm:py-1.5 text-zinc-700 dark:text-zinc-300 focus:outline-none flex-1 sm:flex-initial min-w-0 max-w-[130px] sm:max-w-none cursor-pointer"
           >
             <option value="All">All Levels</option>
-            <option value="Beginner">Beginner (Words)</option>
-            <option value="Elementary">Elementary (Sentences)</option>
-            <option value="Intermediate">Intermediate (Conversations)</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Elementary">Elementary</option>
+            <option value="Intermediate">Intermediate</option>
           </select>
 
           <div className="relative flex-1 sm:w-60">
